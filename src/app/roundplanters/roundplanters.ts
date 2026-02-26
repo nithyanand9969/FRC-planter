@@ -60,11 +60,10 @@ export class RoundPlanters {
 
   selectThickness(value: number) {
     this.selectedThickness = value;
-    this.calculateAll(); // force refresh
   }
 
   // ===============================
-  // UNIT CONVERSION
+  // UNIT CONVERSION (if needed)
   // ===============================
 
   convertToInches(value: number): number {
@@ -78,62 +77,87 @@ export class RoundPlanters {
   }
 
   // ===============================
-  // MAIN CALCULATION
+  // EXACT EXCEL FORMULAS
   // ===============================
 
   calculateAll() {
-
+    // Get values and convert to inches if needed
     const D = this.convertToInches(Number(this.dimensions.topDia) || 0);
     const H = this.convertToInches(Number(this.dimensions.height) || 0);
     const Q = Number(this.dimensions.quantity) || 1;
 
     if (D <= 0 || H <= 0) {
-      this.calculated.topCircle = 0;
-      this.calculated.totalSqft = 0;
-      this.calculated.dieCost = 0;
-      this.calculated.dieCostPerPcs = 0;
+      this.resetCalculations();
       return;
     }
 
-    // Circumference
+    // FORMULA 1: TOP CIRCLE = π × Diameter
+    // Excel: =PI()*[Top Dia]
     const circumference = Math.PI * D;
-    this.calculated.topCircle = parseFloat(circumference.toFixed(4));
+    this.calculated.topCircle = parseFloat(circumference.toFixed(2));
 
-    // Lateral Area
-    const area = (circumference * H) / 144;
-    this.calculated.totalSqft = parseFloat(area.toFixed(4));
+    // FORMULA 2: TOTAL SQFT = (π × Diameter × Height) ÷ 144
+    // Excel: =(PI()*[Top Dia]*[Height])/144
+    const area = (Math.PI * D * H) / 144;
+    this.calculated.totalSqft = parseFloat(area.toFixed(2));
 
-    // Die Cost
+    // FORMULA 3: DIE COST = Total Sqft × 2140
+    // Excel: =[Total Sqft]*2140
     const die = area * 2140;
-    this.calculated.dieCost = parseFloat(die.toFixed(2));
+    this.calculated.dieCost = Math.round(die);
 
-    // Die Cost Per Piece
-    this.calculated.dieCostPerPcs =
-      Q > 0 ? parseFloat((die / Q).toFixed(2)) : 0;
+    // FORMULA 4: DIE COST PER PIECE = Die Cost ÷ Quantity
+    // Excel: =[Die Cost]/[Quantity]
+    this.calculated.dieCostPerPcs = Q > 0 ? Math.round(die / Q) : 0;
+  }
+
+  resetCalculations() {
+    this.calculated.topCircle = 0;
+    this.calculated.totalSqft = 0;
+    this.calculated.dieCost = 0;
+    this.calculated.dieCostPerPcs = 0;
   }
 
   // ===============================
   // RATE CALCULATIONS
   // ===============================
 
+  // FORMULA 5: BASE FRP RATE = (Total Sqft × 321) + Die Cost Per Piece
+  // Excel: =([Total Sqft]*321)+[Die Cost Per Piece]
   getFrpRate(): number {
-    return (this.calculated.totalSqft * 321) +
-           this.calculated.dieCostPerPcs;
+    return (this.calculated.totalSqft * 321) + this.calculated.dieCostPerPcs;
   }
 
+  // FORMULA 6: 2.5mm RATE = FRP Rate + (Total Sqft × 100)
+  // Excel: =[FRP Rate]+([Total Sqft]*100)
   getRate25(): number {
-    return this.getFrpRate() +
-           (this.calculated.totalSqft * 100);
+    return this.getFrpRate() + (this.calculated.totalSqft * 100);
   }
 
+  // FORMULA 7: 3.5mm RATE = FRP Rate + (Total Sqft × 150)
+  // Excel: =[FRP Rate]+([Total Sqft]*150)
   getRate35(): number {
-    return this.getFrpRate() +
-           (this.calculated.totalSqft * 150);
+    return this.getFrpRate() + (this.calculated.totalSqft * 150);
   }
 
+  // FORMULA 8: 5mm RATE = FRP Rate + (Total Sqft × 250)
+  // Excel: =[FRP Rate]+([Total Sqft]*250)
   getRate5(): number {
-    return this.getFrpRate() +
-           (this.calculated.totalSqft * 250);
+    return this.getFrpRate() + (this.calculated.totalSqft * 250);
+  }
+
+  // ===============================
+  // GET RATE FOR DISPLAY
+  // ===============================
+
+  getDisplayRate(thickness: number): number {
+    // Round to nearest whole number for display
+    switch (thickness) {
+      case 2.5: return Math.round(this.getRate25());
+      case 3.5: return Math.round(this.getRate35());
+      case 5.0: return Math.round(this.getRate5());
+      default: return Math.round(this.getFrpRate());
+    }
   }
 
   // ===============================
@@ -144,33 +168,49 @@ export class RoundPlanters {
     return this.getDisplayRate(this.selectedThickness);
   }
 
-// ===============================
-// DISPLAY RATE FOR UI
-// ===============================
-
-getDisplayRate(thickness: number): number {
-  switch (thickness) {
-    case 2.5: return this.getRate25();
-    case 3.5: return this.getRate35();
-    case 5.0: return this.getRate5();
-    default: return this.getFrpRate();
-  }
-}
-
   // ===============================
-  // GST
+  // GST CALCULATIONS
   // ===============================
 
+  // FORMULA 9: SUBTOTAL = Selected Rate × Quantity
+  // Excel: =[Selected Rate]*[Quantity]
   getSubtotal(): number {
     return this.getSelectedRate() * (this.dimensions.quantity || 1);
   }
 
+  // FORMULA 10: GST AMOUNT = Subtotal × (GST% ÷ 100)
+  // Excel: =[Subtotal]*([GST%]/100)
   getGstAmount(): number {
     return (this.getSubtotal() * (this.gstPercent || 0)) / 100;
   }
 
+  // FORMULA 11: GRAND TOTAL = Subtotal + GST Amount
+  // Excel: =[Subtotal]+[GST Amount]
   getGrandTotal(): number {
     return this.getSubtotal() + this.getGstAmount();
+  }
+
+  // ===============================
+  // MAIN PLANTER TOTAL (Without GST)
+  // ===============================
+
+  getMainPlanterTotal(): number {
+    return this.getSelectedRate() * (this.dimensions.quantity || 1);
+  }
+
+  // ===============================
+  // CLEAR MAIN FORM
+  // ===============================
+
+  clearMainForm() {
+    this.dimensions = {
+      topDia: 0,
+      height: 0,
+      quantity: 1
+    };
+    this.selectedThickness = 1.5;
+    this.gstPercent = 18;
+    this.calculateAll();
   }
 
   // ===============================
@@ -185,56 +225,85 @@ getDisplayRate(thickness: number): number {
     this.router.navigate(['/round-planters']);
   }
 
-  // ARRAY FOR MULTIPLE CALCULATORS
-extraCalculators: any[] = [];
+  // ===============================
+  // ADDITIONAL CALCULATORS
+  // ===============================
 
-addNewCalculator() {
-  this.extraCalculators.push({
-    topDia: 0,
-    height: 0,
-    qty: 1,
-    selectedThickness: 1.5,
-    totalSqft: 0,
-    dieCostPerPcs: 0
-  });
-}
+  extraCalculators: any[] = [];
 
-// CALCULATE EXTRA
-calculateExtra(calc: any) {
-
-  const D = calc.topDia || 0;
-  const H = calc.height || 0;
-  const Q = calc.qty || 1;
-
-  if (D > 0 && H > 0) {
-    const circumference = Math.PI * D;
-    const area = (circumference * H) / 144;
-    const die = area * 2140;
-
-    calc.totalSqft = area;
-    calc.dieCostPerPcs = die / Q;
+  addNewCalculator() {
+    this.extraCalculators.push({
+      topDia: 0,
+      height: 0,
+      qty: 1,
+      selectedThickness: 1.5,
+      totalSqft: 0,
+      dieCostPerPcs: 0,
+      topCircle: 0
+    });
   }
-}
 
-// GET TOTAL
-getExtraGrandTotal(calc: any): number {
+  removeCalculator(index: number) {
+    this.extraCalculators.splice(index, 1);
+  }
 
-  const base =
-    (calc.totalSqft * 321) + calc.dieCostPerPcs;
+  // ===============================
+  // CALCULATE EXTRA (Same Excel formulas)
+  // ===============================
 
-  let final = base;
+  calculateExtra(calc: any) {
+    const D = calc.topDia || 0;
+    const H = calc.height || 0;
+    const Q = calc.qty || 1;
 
-  if (calc.selectedThickness === 2.5)
-    final += calc.totalSqft * 100;
+    if (D > 0 && H > 0) {
+      // Same Excel formulas as main calculator
+      const circumference = Math.PI * D;
+      const area = (Math.PI * D * H) / 144;
+      const die = area * 2140;
 
-  if (calc.selectedThickness === 3.5)
-    final += calc.totalSqft * 150;
+      calc.topCircle = parseFloat(circumference.toFixed(2));
+      calc.totalSqft = parseFloat(area.toFixed(2));
+      calc.dieCostPerPcs = Q > 0 ? Math.round(die / Q) : 0;
+    } else {
+      calc.topCircle = 0;
+      calc.totalSqft = 0;
+      calc.dieCostPerPcs = 0;
+    }
+  }
 
-  if (calc.selectedThickness === 5.0)
-    final += calc.totalSqft * 250;
+  // ===============================
+  // GET EXTRA RATE (Same Excel formulas)
+  // ===============================
 
-  return final * calc.qty;
-}
+  getExtraRate(calc: any): number {
+    if (!calc.totalSqft) return 0;
+    
+    const base = (calc.totalSqft * 321) + calc.dieCostPerPcs;
+    let final = base;
+
+    if (calc.selectedThickness === 2.5)
+      final += calc.totalSqft * 100;
+    else if (calc.selectedThickness === 3.5)
+      final += calc.totalSqft * 150;
+    else if (calc.selectedThickness === 5.0)
+      final += calc.totalSqft * 250;
+
+    return Math.round(final);
+  }
+
+  // ===============================
+  // GET EXTRA GRAND TOTAL
+  // ===============================
+
+  getExtraGrandTotal(calc: any): number {
+    return this.getExtraRate(calc) * (calc.qty || 1);
+  }
+
+  // ===============================
+  // LOGOUT
+  // ===============================
+
   logout() {
     this.auth.logout();
     this.router.navigate(['']);
@@ -245,7 +314,6 @@ getExtraGrandTotal(calc: any): number {
   // ===============================
 
   generatePDF() {
-
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString();
 
@@ -273,13 +341,29 @@ getExtraGrandTotal(calc: any): number {
     doc.text(`Quantity: ${this.dimensions.quantity}`, 10, y);
 
     y += 10;
-    doc.text(`Total Sqft: ${this.calculated.totalSqft.toFixed(4)}`, 10, y);
+    doc.text(`Total Sqft: ${this.calculated.totalSqft.toFixed(2)}`, 10, y);
     y += 6;
     doc.text(`Selected Thickness: ${this.selectedThickness} mm`, 10, y);
     y += 6;
-    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate().toFixed(2)}`, 10, y);
+    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate()}`, 10, y);
     y += 6;
-    doc.text(`Grand Total (Incl GST): ₹ ${this.getGrandTotal().toFixed(2)}`, 10, y);
+    doc.text(`Main Planter Total: ₹ ${this.getMainPlanterTotal()}`, 10, y);
+    
+    if (this.extraCalculators.length > 0) {
+      y += 10;
+      doc.text('Additional Planters:', 10, y);
+      
+      for (let i = 0; i < this.extraCalculators.length; i++) {
+        const calc = this.extraCalculators[i];
+        y += 8;
+        doc.text(`Planter ${i + 1}: Dia ${calc.topDia}", Ht ${calc.height}", Qty ${calc.qty}`, 15, y);
+        y += 6;
+        doc.text(`Total: ₹ ${this.getExtraGrandTotal(calc)}`, 20, y);
+      }
+    }
+
+    y += 10;
+    doc.text(`Grand Total (Incl GST): ₹ ${Math.round(this.getGrandTotal())}`, 10, y);
 
     doc.save('Round_Planter_Quotation.pdf');
   }
@@ -289,10 +373,9 @@ getExtraGrandTotal(calc: any): number {
   // ===============================
 
   shareOnWhatsApp() {
-
     const number = this.phoneNumber.replace(/\D/g, '');
 
-    const message = `
+    let message = `
 ${this.companyName}
 
 ROUND PLANTER QUOTATION
@@ -300,20 +383,31 @@ ROUND PLANTER QUOTATION
 Customer: ${this.customerName}
 Project: ${this.projectName}
 
+MAIN PLANTER:
 Top Dia: ${this.dimensions.topDia} ${this.unit}
 Height: ${this.dimensions.height} ${this.unit}
 Qty: ${this.dimensions.quantity}
-
-Total Sqft: ${this.calculated.totalSqft.toFixed(4)}
-
+Total Sqft: ${this.calculated.totalSqft.toFixed(2)}
 Selected Thickness: ${this.selectedThickness} mm
-Grand Total (Incl GST): ₹ ${this.getGrandTotal().toFixed(2)}
+Per Piece Rate: ₹ ${this.getSelectedRate()}
+Subtotal: ₹ ${this.getMainPlanterTotal()}
+`;
+
+    if (this.extraCalculators.length > 0) {
+      message += `\nADDITIONAL PLANTERS:\n`;
+      for (let i = 0; i < this.extraCalculators.length; i++) {
+        const calc = this.extraCalculators[i];
+        message += `Planter ${i + 1}: Dia ${calc.topDia}", Ht ${calc.height}", Qty ${calc.qty} - ₹ ${this.getExtraGrandTotal(calc)}\n`;
+      }
+    }
+
+    message += `
+Grand Total (Incl GST): ₹ ${Math.round(this.getGrandTotal())}
 
 Thank you.
 `;
 
     const encoded = encodeURIComponent(message);
-
     const url = number
       ? `https://wa.me/91${number}?text=${encoded}`
       : `https://wa.me/?text=${encoded}`;
