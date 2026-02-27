@@ -3,7 +3,7 @@ name: Auto Deploy to EC2
 on:
   push:
     branches:
-      - main   # change if using another branch
+      - main
 
 jobs:
   deploy:
@@ -20,23 +20,19 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            # Create app folder if not exists
             mkdir -p ~/app
             cd ~/app
 
-            # If first time clone
+            # First time clone
             if [ ! -d ".git" ]; then
-              git clone https://github.com/${{ nithyanand9969/FRC-planter }} .
+              git clone https://github.com/nithyanand9969/FRC-planter.git .
             else
               git pull origin main
             fi
 
-            # Stop old container if exists
             docker stop frc-app || true
             docker rm frc-app || true
 
-            # Build new Docker image
             docker build -t frc-app .
 
-            # Run container
             docker run -d --restart always -p 80:80 --name frc-app frc-app
