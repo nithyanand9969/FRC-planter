@@ -47,6 +47,12 @@ export class SQUARELANTERS {
   };
 
   // ===============================
+  // ADDITIONAL CALCULATORS
+  // ===============================
+
+  extraCalculators: any[] = [];
+
+  // ===============================
   // THICKNESS SELECT
   // ===============================
 
@@ -73,31 +79,26 @@ export class SQUARELANTERS {
   // ===============================
 
   calculateAll() {
-
     const { length, width, height, quantity } = this.dimensions;
 
-    const L = this.convertToInches(length);
-    const W = this.convertToInches(width);
-    const H = this.convertToInches(height);
+    const L = this.convertToInches(length || 0);
+    const W = this.convertToInches(width || 0);
+    const H = this.convertToInches(height || 0);
 
     if (L > 0 && W > 0 && H > 0) {
       const perimeter = 2 * (L + W);
-      this.calculated.fourSide = (perimeter * H) / 144;
+      this.calculated.fourSide = parseFloat(((perimeter * H) / 144).toFixed(2));
     } else {
       this.calculated.fourSide = 0;
     }
 
-    this.calculated.bottom =
-      (L > 0 && W > 0) ? (L * W) / 144 : 0;
+    this.calculated.bottom = (L > 0 && W > 0) ? parseFloat(((L * W) / 144).toFixed(2)) : 0;
 
-    this.calculated.totalSqft =
-      this.calculated.fourSide + this.calculated.bottom;
+    this.calculated.totalSqft = parseFloat((this.calculated.fourSide + this.calculated.bottom).toFixed(2));
 
     const die = this.calculated.totalSqft * 1070;
-
-    this.calculated.dieCost = die;
-    this.calculated.dieCostPerPcs =
-      quantity > 0 ? die / quantity : 0;
+    this.calculated.dieCost = Math.round(die);
+    this.calculated.dieCostPerPcs = quantity > 0 ? Math.round(die / quantity) : 0;
   }
 
   // ===============================
@@ -105,23 +106,19 @@ export class SQUARELANTERS {
   // ===============================
 
   getFrp15Rate(): number {
-    return (this.calculated.totalSqft * 321) +
-           this.calculated.dieCostPerPcs;
+    return Math.round((this.calculated.totalSqft * 321) + this.calculated.dieCostPerPcs);
   }
 
   getThickness25Rate(): number {
-    return this.getFrp15Rate() +
-           (this.calculated.totalSqft * 100);
+    return Math.round(this.getFrp15Rate() + (this.calculated.totalSqft * 100));
   }
 
   getThickness35Rate(): number {
-    return this.getFrp15Rate() +
-           (this.calculated.totalSqft * 150);
+    return Math.round(this.getFrp15Rate() + (this.calculated.totalSqft * 150));
   }
 
   getThickness5Rate(): number {
-    return this.getFrp15Rate() +
-           (this.calculated.totalSqft * 250);
+    return Math.round(this.getFrp15Rate() + (this.calculated.totalSqft * 250));
   }
 
   // ===============================
@@ -146,17 +143,122 @@ export class SQUARELANTERS {
   // ===============================
 
   getSubtotal(): number {
-    return this.getSelectedRate() *
-           (this.dimensions.quantity || 1);
+    return this.getSelectedRate() * (this.dimensions.quantity || 1);
   }
 
   getGstAmount(): number {
-    return (this.getSubtotal() *
-           (this.gstPercent || 0)) / 100;
+    return Math.round((this.getSubtotal() * (this.gstPercent || 0)) / 100);
   }
 
   getGrandTotal(): number {
     return this.getSubtotal() + this.getGstAmount();
+  }
+
+  // ===============================
+  // MAIN PLANTER TOTAL (Without GST)
+  // ===============================
+
+  getMainPlanterTotal(): number {
+    return this.getSelectedRate() * (this.dimensions.quantity || 1);
+  }
+
+  // ===============================
+  // CLEAR MAIN FORM
+  // ===============================
+
+  clearMainForm() {
+    this.dimensions = {
+      length: 0,
+      width: 0,
+      height: 0,
+      quantity: 1
+    };
+    this.selectedThickness = 1.5;
+    this.gstPercent = 18;
+    this.calculateAll();
+  }
+
+  // ===============================
+  // ADDITIONAL CALCULATORS METHODS
+  // ===============================
+
+  addNewCalculator() {
+    this.extraCalculators.push({
+      length: 0,
+      width: 0,
+      height: 0,
+      qty: 1,
+      selectedThickness: 1.5,
+      fourSide: 0,
+      bottom: 0,
+      totalSqft: 0,
+      dieCostPerPcs: 0,
+      materialCost: 0
+    });
+  }
+
+  removeCalculator(index: number) {
+    this.extraCalculators.splice(index, 1);
+  }
+
+  calculateExtra(calc: any) {
+    const L = this.convertToInches(calc.length || 0);
+    const W = this.convertToInches(calc.width || 0);
+    const H = this.convertToInches(calc.height || 0);
+    const Q = calc.qty || 1;
+
+    if (L > 0 && W > 0 && H > 0) {
+      const perimeter = 2 * (L + W);
+      const fourSide = (perimeter * H) / 144;
+      const bottom = (L * W) / 144;
+      const totalSqft = fourSide + bottom;
+      
+      const dieCostPerPcs = (totalSqft * 1070) / Q;
+
+      calc.fourSide = parseFloat(fourSide.toFixed(2));
+      calc.bottom = parseFloat(bottom.toFixed(2));
+      calc.totalSqft = parseFloat(totalSqft.toFixed(2));
+      calc.dieCostPerPcs = Math.round(dieCostPerPcs);
+      
+      // Calculate material cost based on selected thickness
+      const baseRate = (totalSqft * 321) + dieCostPerPcs;
+      let finalRate = baseRate;
+      
+      if (calc.selectedThickness === 2.5)
+        finalRate += totalSqft * 100;
+      else if (calc.selectedThickness === 3.5)
+        finalRate += totalSqft * 150;
+      else if (calc.selectedThickness === 5.0)
+        finalRate += totalSqft * 250;
+        
+      calc.materialCost = Math.round(finalRate);
+    } else {
+      calc.fourSide = 0;
+      calc.bottom = 0;
+      calc.totalSqft = 0;
+      calc.dieCostPerPcs = 0;
+      calc.materialCost = 0;
+    }
+  }
+
+  getExtraRate(calc: any): number {
+    if (!calc.totalSqft) return 0;
+    
+    const base = (calc.totalSqft * 321) + calc.dieCostPerPcs;
+    let final = base;
+
+    if (calc.selectedThickness === 2.5)
+      final += calc.totalSqft * 100;
+    else if (calc.selectedThickness === 3.5)
+      final += calc.totalSqft * 150;
+    else if (calc.selectedThickness === 5.0)
+      final += calc.totalSqft * 250;
+
+    return Math.round(final);
+  }
+
+  getExtraGrandTotal(calc: any): number {
+    return this.getExtraRate(calc) * (calc.qty || 1);
   }
 
   // ===============================
@@ -181,7 +283,6 @@ export class SQUARELANTERS {
   // ===============================
 
   generatePDF() {
-
     const doc = new jsPDF();
     const today = new Date().toLocaleDateString();
     let y = 15;
@@ -201,11 +302,38 @@ export class SQUARELANTERS {
     doc.text(`Phone: ${this.phoneNumber}`, 10, y);
 
     y += 10;
+    doc.text(`Length: ${this.dimensions.length} ${this.unit}`, 10, y);
+    y += 6;
+    doc.text(`Width: ${this.dimensions.width} ${this.unit}`, 10, y);
+    y += 6;
+    doc.text(`Height: ${this.dimensions.height} ${this.unit}`, 10, y);
+    y += 6;
+    doc.text(`Quantity: ${this.dimensions.quantity}`, 10, y);
+
+    y += 10;
+    doc.text(`Total Sqft: ${this.calculated.totalSqft.toFixed(2)}`, 10, y);
+    y += 6;
     doc.text(`Selected Thickness: ${this.selectedThickness} mm`, 10, y);
     y += 6;
-    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate().toFixed(2)}`, 10, y);
+    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate()}`, 10, y);
     y += 6;
-    doc.text(`Grand Total (Incl GST): ₹ ${this.getGrandTotal().toFixed(2)}`, 10, y);
+    doc.text(`Main Lantern Total: ₹ ${this.getMainPlanterTotal()}`, 10, y);
+    
+    if (this.extraCalculators.length > 0) {
+      y += 10;
+      doc.text('Additional Lanterns:', 10, y);
+      
+      for (let i = 0; i < this.extraCalculators.length; i++) {
+        const calc = this.extraCalculators[i];
+        y += 8;
+        doc.text(`Lantern ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty}`, 15, y);
+        y += 6;
+        doc.text(`Total: ₹ ${this.getExtraGrandTotal(calc)}`, 20, y);
+      }
+    }
+
+    y += 10;
+    doc.text(`Grand Total (Incl GST): ₹ ${Math.round(this.getGrandTotal())}`, 10, y);
 
     doc.save('Square_Lantern_Quotation.pdf');
   }
@@ -215,10 +343,9 @@ export class SQUARELANTERS {
   // ===============================
 
   shareOnWhatsApp() {
-
     const number = this.phoneNumber.replace(/\D/g, '');
 
-    const message = `
+    let message = `
 ${this.companyName}
 
 SQUARE LANTERN QUOTATION
@@ -226,14 +353,32 @@ SQUARE LANTERN QUOTATION
 Customer: ${this.customerName}
 Project: ${this.projectName}
 
+MAIN LANTERN:
+Length: ${this.dimensions.length} ${this.unit}
+Width: ${this.dimensions.width} ${this.unit}
+Height: ${this.dimensions.height} ${this.unit}
+Qty: ${this.dimensions.quantity}
+Total Sqft: ${this.calculated.totalSqft.toFixed(2)}
 Selected Thickness: ${this.selectedThickness} mm
-Grand Total (Incl GST): ₹ ${this.getGrandTotal().toFixed(2)}
+Per Piece Rate: ₹ ${this.getSelectedRate()}
+Subtotal: ₹ ${this.getMainPlanterTotal()}
+`;
 
-Thank You
+    if (this.extraCalculators.length > 0) {
+      message += `\nADDITIONAL LANTERNS:\n`;
+      for (let i = 0; i < this.extraCalculators.length; i++) {
+        const calc = this.extraCalculators[i];
+        message += `Lantern ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty} - ₹ ${this.getExtraGrandTotal(calc)}\n`;
+      }
+    }
+
+    message += `
+Grand Total (Incl GST): ₹ ${Math.round(this.getGrandTotal())}
+
+Thank you.
 `;
 
     const encoded = encodeURIComponent(message);
-
     const url = number
       ? `https://wa.me/91${number}?text=${encoded}`
       : `https://wa.me/?text=${encoded}`;
