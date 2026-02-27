@@ -151,7 +151,45 @@
         </div>
       </div>
 
-      <!-- CALCULATED SUMMARY - Premium Cards with Icons -->
+      <!-- EXACT CALCULATED VALUES - 5 DECIMAL PLACES -->
+      <div class="mb-6 p-4 bg-stone-50 rounded-xl border border-stone-200">
+        <h4 class="text-sm font-semibold text-stone-700 mb-3 flex items-center gap-2">
+          <span class="w-1 h-4 bg-amber-400 rounded-full"></span>
+          Exact Calculations (5 Decimal Places)
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <p class="text-xs text-stone-500">Raw Total Sqft:</p>
+            <p class="text-lg font-mono font-bold text-stone-800">{{calculated.rawTotalSqft | number:'1.5-5'}}</p>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500">Raw Die Cost:</p>
+            <p class="text-lg font-mono font-bold text-stone-800">₹ {{calculated.rawDieCost | number:'1.2-2'}}</p>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500">Raw Die Cost/PCS:</p>
+            <p class="text-lg font-mono font-bold text-stone-800">₹ {{calculated.rawDieCostPerPcs | number:'1.5-5'}}</p>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500">FRP Rate (1.5mm):</p>
+            <p class="text-lg font-mono font-bold text-stone-800">₹ {{getFrpRate() | number:'1.5-5'}}</p>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500">2.5mm Rate:</p>
+            <p class="text-lg font-mono font-bold text-stone-800">₹ {{getRate25() | number:'1.5-5'}}</p>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500">3.5mm Rate:</p>
+            <p class="text-lg font-mono font-bold text-stone-800">₹ {{getRate35() | number:'1.5-5'}}</p>
+          </div>
+          <div>
+            <p class="text-xs text-stone-500">5mm Rate:</p>
+            <p class="text-lg font-mono font-bold text-stone-800">₹ {{getRate5() | number:'1.5-5'}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CALCULATED SUMMARY - Premium Cards with Icons (Rounded for Display) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
         <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 p-5 rounded-2xl shadow-lg border border-white/60 backdrop-blur-sm hover:shadow-xl transition-all duration-300 group">
           <div class="flex items-start justify-between">
@@ -174,6 +212,7 @@
               <h3 class="text-2xl font-bold text-stone-800 mt-1 group-hover:text-indigo-600 transition-colors">
                 {{calculated.totalSqft | number:'1.2-2'}} <span class="text-sm font-normal">sq ft</span>
               </h3>
+              <p class="text-xs text-stone-400 mt-1">Exact: {{calculated.rawTotalSqft | number:'1.5-5'}}</p>
             </div>
             <div class="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-indigo-600 text-xl">📐</span>
@@ -188,6 +227,7 @@
               <h3 class="text-2xl font-bold text-stone-800 mt-1 group-hover:text-yellow-600 transition-colors">
                 ₹ {{calculated.dieCost | number:'1.0-0'}}
               </h3>
+              <p class="text-xs text-stone-400 mt-1">Exact: {{calculated.rawDieCost | number:'1.2-2'}}</p>
             </div>
             <div class="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-yellow-600 text-xl">⚙️</span>
@@ -202,6 +242,7 @@
               <h3 class="text-2xl font-bold text-stone-800 mt-1 group-hover:text-purple-600 transition-colors">
                 ₹ {{calculated.dieCostPerPcs | number:'1.0-0'}}
               </h3>
+              <p class="text-xs text-stone-400 mt-1">Exact: {{calculated.rawDieCostPerPcs | number:'1.5-5'}}</p>
             </div>
             <div class="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-purple-600 text-xl">📊</span>
@@ -227,14 +268,14 @@
         </div>
       </div>
 
-      <!-- THICKNESS SECTION - Main Calculator -->
+      <!-- THICKNESS SECTION - Main Calculator (with exact values on hover) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <div *ngFor="let t of [1.5, 2.5, 3.5, 5.0]"
              (click)="selectThickness(t)"
              [ngClass]="selectedThickness === t ? 
                'border-amber-500 ring-2 ring-amber-300 scale-105 bg-gradient-to-br from-amber-50 to-white' : 
                'bg-gradient-to-br from-stone-50 to-white hover:from-amber-50/50'"
-             class="cursor-pointer p-6 rounded-2xl shadow-xl border border-stone-200 hover:border-amber-300 transition-all duration-300 hover:shadow-2xl group">
+             class="cursor-pointer p-6 rounded-2xl shadow-xl border border-stone-200 hover:border-amber-300 transition-all duration-300 hover:shadow-2xl group relative">
 
           <div class="flex items-center gap-3 mb-3">
             <div class="w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -249,6 +290,11 @@
             </h2>
             <span class="text-stone-300 text-sm">Rate</span>
           </div>
+          
+          <!-- Tooltip with exact value -->
+          <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-stone-800 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50 pointer-events-none">
+            Exact: ₹ {{ t === 1.5 ? getFrpRate() : t === 2.5 ? getRate25() : t === 3.5 ? getRate35() : getRate5() | number:'1.5-5' }}
+          </div>
         </div>
       </div>
 
@@ -261,6 +307,7 @@
           </div>
           <p class="text-3xl font-bold text-amber-700">₹ {{ getMainPlanterTotal() | number:'1.0-0' }}</p>
         </div>
+        <p class="text-xs text-stone-400 mt-2 text-right">Based on rounded rate</p>
       </div>
     </div>
 
@@ -314,16 +361,26 @@
         </div>
       </div>
 
-      <!-- THICKNESS SECTION - Additional Calculator (Styled like main) -->
+      <!-- Exact Values for Additional Calculator -->
+      <div class="mb-6 p-3 bg-stone-50 rounded-lg">
+        <p class="text-xs font-semibold text-stone-600 mb-2">Exact Values (5 decimals):</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+          <div>Raw Total Sqft: <span class="font-mono font-bold">{{calc.rawTotalSqft | number:'1.5-5'}}</span></div>
+          <div>Raw Die Cost/PCS: <span class="font-mono font-bold">₹ {{calc.rawDieCostPerPcs | number:'1.5-5'}}</span></div>
+          <div>Raw Rate: <span class="font-mono font-bold">₹ {{getExtraRawRate(calc) | number:'1.5-5'}}</span></div>
+        </div>
+      </div>
+
+      <!-- THICKNESS SECTION - Additional Calculator -->
       <div class="mb-8">
         <label class="block text-xs font-semibold text-stone-400 uppercase tracking-wider mb-4">Select Thickness</label>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div *ngFor="let t of [1.5, 2.5, 3.5, 5.0]"
-               (click)="calc.selectedThickness = t"
+               (click)="calc.selectedThickness = t; calculateExtra(calc)"
                [ngClass]="calc.selectedThickness === t ? 
                  'border-amber-500 ring-2 ring-amber-300 scale-105 bg-gradient-to-br from-amber-50 to-white' : 
                  'bg-gradient-to-br from-stone-50 to-white hover:from-amber-50/50'"
-               class="cursor-pointer p-5 rounded-2xl shadow-lg border border-stone-200 hover:border-amber-300 transition-all duration-300 hover:shadow-xl group text-center">
+               class="cursor-pointer p-5 rounded-2xl shadow-lg border border-stone-200 hover:border-amber-300 transition-all duration-300 hover:shadow-xl group text-center relative">
 
             <div class="flex items-center justify-center gap-2 mb-2">
               <div class="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -336,11 +393,16 @@
                 ₹ {{ getDisplayRate(t) | number:'1.0-0' }}
               </span>
             </div>
+            
+            <!-- Tooltip with exact value -->
+            <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-stone-800 text-white text-xs rounded-lg px-3 py-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-50 pointer-events-none">
+              Exact: ₹ {{ t === 1.5 ? getFrpRate() : t === 2.5 ? getRate25() : t === 3.5 ? getRate35() : getRate5() | number:'1.5-5' }}
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Calculated Values -->
+      <!-- Calculated Values (Rounded) -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
         <div class="bg-stone-50 p-4 rounded-xl">
           <p class="text-xs text-stone-500 uppercase">Top Circle</p>
@@ -349,17 +411,22 @@
         <div class="bg-stone-50 p-4 rounded-xl">
           <p class="text-xs text-stone-500 uppercase">Total Sqft</p>
           <p class="text-xl font-bold text-stone-800">{{calc.totalSqft | number:'1.2-2'}} <span class="text-sm font-normal">sq ft</span></p>
+          <p class="text-xs text-stone-400">Exact: {{calc.rawTotalSqft | number:'1.5-5'}}</p>
         </div>
         <div class="bg-stone-50 p-4 rounded-xl">
           <p class="text-xs text-stone-500 uppercase">Die Cost/PCS</p>
           <p class="text-xl font-bold text-stone-800">₹ {{calc.dieCostPerPcs | number:'1.0-0'}}</p>
+          <p class="text-xs text-stone-400">Exact: {{calc.rawDieCostPerPcs | number:'1.5-5'}}</p>
         </div>
       </div>
 
       <!-- Individual Planter Total -->
       <div class="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl border border-amber-200">
         <div class="flex justify-between items-center">
-          <p class="text-sm text-stone-600 uppercase tracking-wider">Planter {{ i + 1 }} Total</p>
+          <div>
+            <p class="text-sm text-stone-600 uppercase tracking-wider">Planter {{ i + 1 }} Total</p>
+            <p class="text-xs text-stone-400">Based on rounded rate</p>
+          </div>
           <p class="text-2xl font-bold text-amber-700">₹ {{ getExtraGrandTotal(calc) | number:'1.0-0' }}</p>
         </div>
       </div>
@@ -390,6 +457,14 @@
           <span>Additional Planter {{ i + 1 }}:</span>
           <span class="font-semibold">₹ {{ getExtraGrandTotal(calc) | number:'1.0-0' }}</span>
         </div>
+        <div class="flex justify-between items-center text-sm text-stone-600 mt-2 pt-2 border-t border-green-200/30">
+          <span>Subtotal (without GST):</span>
+          <span class="font-semibold">₹ {{ (getMainPlanterTotal() + getAllAdditionalTotal()) | number:'1.0-0' }}</span>
+        </div>
+        <div class="flex justify-between items-center text-sm text-stone-600 mt-1">
+          <span>GST ({{gstPercent}}%):</span>
+          <span class="font-semibold">₹ {{ ((getMainPlanterTotal() + getAllAdditionalTotal()) * gstPercent / 100) | number:'1.0-0' }}</span>
+        </div>
       </div>
       
       <p class="text-sm text-stone-500 uppercase tracking-widest mb-2">
@@ -397,11 +472,11 @@
       </p>
 
       <h2 class="text-5xl font-bold bg-gradient-to-r from-green-700 to-emerald-700 bg-clip-text text-transparent">
-        ₹ {{ getGrandTotal() | number:'1.0-0' }}
+        ₹ {{ getCombinedGrandTotal() | number:'1.0-0' }}
       </h2>
 
       <p class="text-xs text-stone-400 mt-2">
-        All taxes included • Final amount
+        All taxes included • Final amount (rounded)
       </p>
     </div>
 

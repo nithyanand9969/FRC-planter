@@ -102,7 +102,7 @@ export class SQUARELANTERS {
   }
 
   // ===============================
-  // RATE CALCULATIONS
+  // RATE CALCULATIONS (ALL IN INR ₹)
   // ===============================
 
   getFrp15Rate(): number {
@@ -151,7 +151,7 @@ export class SQUARELANTERS {
   }
 
   getGrandTotal(): number {
-    return this.getSubtotal() + this.getGstAmount();
+    return Math.round(this.getSubtotal() + this.getGstAmount());
   }
 
   // ===============================
@@ -159,7 +159,7 @@ export class SQUARELANTERS {
   // ===============================
 
   getMainPlanterTotal(): number {
-    return this.getSelectedRate() * (this.dimensions.quantity || 1);
+    return Math.round(this.getSelectedRate() * (this.dimensions.quantity || 1));
   }
 
   // ===============================
@@ -258,7 +258,31 @@ export class SQUARELANTERS {
   }
 
   getExtraGrandTotal(calc: any): number {
-    return this.getExtraRate(calc) * (calc.qty || 1);
+    return Math.round(this.getExtraRate(calc) * (calc.qty || 1));
+  }
+
+  // ===============================
+  // GET ALL ADDITIONAL PLANTERS TOTAL (IN INR)
+  // ===============================
+
+  getAllAdditionalTotal(): number {
+    let total = 0;
+    for (let calc of this.extraCalculators) {
+      total += this.getExtraGrandTotal(calc);
+    }
+    return Math.round(total);
+  }
+
+  // ===============================
+  // GET COMBINED GRAND TOTAL (IN INR)
+  // ===============================
+
+  getCombinedGrandTotal(): number {
+    const mainTotal = this.getMainPlanterTotal();
+    const additionalTotal = this.getAllAdditionalTotal();
+    const subtotal = mainTotal + additionalTotal;
+    const gstAmount = (subtotal * (this.gstPercent || 0)) / 100;
+    return Math.round(subtotal + gstAmount);
   }
 
   // ===============================
@@ -279,7 +303,7 @@ export class SQUARELANTERS {
   }
 
   // ===============================
-  // PDF GENERATION
+  // PDF GENERATION (WITH INR ₹)
   // ===============================
 
   generatePDF() {
@@ -287,6 +311,7 @@ export class SQUARELANTERS {
     const today = new Date().toLocaleDateString();
     let y = 15;
 
+    // Header
     doc.setFontSize(16);
     doc.text(this.companyName, 105, y, { align: 'center' });
 
@@ -294,6 +319,7 @@ export class SQUARELANTERS {
     doc.setFontSize(10);
     doc.text(`Date: ${today}`, 150, 10);
 
+    // Client Details
     y += 10;
     doc.text(`Customer: ${this.customerName}`, 10, y);
     y += 6;
@@ -301,82 +327,119 @@ export class SQUARELANTERS {
     y += 6;
     doc.text(`Phone: ${this.phoneNumber}`, 10, y);
 
+    // Main Planter Details
     y += 10;
-    doc.text(`Length: ${this.dimensions.length} ${this.unit}`, 10, y);
-    y += 6;
-    doc.text(`Width: ${this.dimensions.width} ${this.unit}`, 10, y);
-    y += 6;
-    doc.text(`Height: ${this.dimensions.height} ${this.unit}`, 10, y);
-    y += 6;
-    doc.text(`Quantity: ${this.dimensions.quantity}`, 10, y);
-
-    y += 10;
-    doc.text(`Total Sqft: ${this.calculated.totalSqft.toFixed(2)}`, 10, y);
-    y += 6;
-    doc.text(`Selected Thickness: ${this.selectedThickness} mm`, 10, y);
-    y += 6;
-    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate()}`, 10, y);
-    y += 6;
-    doc.text(`Main Lantern Total: ₹ ${this.getMainPlanterTotal()}`, 10, y);
+    doc.setFontSize(12);
+    doc.text('MAIN PLANTER:', 10, y);
     
+    y += 8;
+    doc.setFontSize(10);
+    doc.text(`Length: ${this.dimensions.length} ${this.unit}`, 15, y);
+    y += 6;
+    doc.text(`Width: ${this.dimensions.width} ${this.unit}`, 15, y);
+    y += 6;
+    doc.text(`Height: ${this.dimensions.height} ${this.unit}`, 15, y);
+    y += 6;
+    doc.text(`Quantity: ${this.dimensions.quantity}`, 15, y);
+    y += 6;
+    doc.text(`Total Sqft: ${this.calculated.totalSqft.toFixed(2)}`, 15, y);
+    y += 6;
+    doc.text(`Selected Thickness: ${this.selectedThickness} mm`, 15, y);
+    y += 6;
+    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate().toLocaleString('en-IN')}`, 15, y);
+    y += 6;
+    doc.text(`Main Planter Total: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}`, 15, y);
+    
+    // Additional Planters
     if (this.extraCalculators.length > 0) {
       y += 10;
-      doc.text('Additional Lanterns:', 10, y);
+      doc.setFontSize(12);
+      doc.text('ADDITIONAL PLANTERS:', 10, y);
       
       for (let i = 0; i < this.extraCalculators.length; i++) {
         const calc = this.extraCalculators[i];
         y += 8;
-        doc.text(`Lantern ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty}`, 15, y);
+        doc.setFontSize(10);
+        doc.text(`Planter ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty}`, 15, y);
         y += 6;
-        doc.text(`Total: ₹ ${this.getExtraGrandTotal(calc)}`, 20, y);
+        doc.text(`Rate: ₹ ${this.getExtraRate(calc).toLocaleString('en-IN')}`, 20, y);
+        y += 6;
+        doc.text(`Total: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}`, 20, y);
       }
     }
 
+    // Totals
     y += 10;
-    doc.text(`Grand Total (Incl GST): ₹ ${Math.round(this.getGrandTotal())}`, 10, y);
+    doc.setFontSize(12);
+    doc.text('SUMMARY:', 10, y);
+    
+    y += 8;
+    doc.setFontSize(10);
+    doc.text(`Main Planter Total: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}`, 15, y);
+    
+    if (this.extraCalculators.length > 0) {
+      y += 6;
+      doc.text(`Additional Planters Total: ₹ ${this.getAllAdditionalTotal().toLocaleString('en-IN')}`, 15, y);
+    }
+    
+    y += 6;
+    doc.text(`GST (${this.gstPercent}%): ₹ ${Math.round((this.getMainPlanterTotal() + this.getAllAdditionalTotal()) * this.gstPercent / 100).toLocaleString('en-IN')}`, 15, y);
+    
+    y += 8;
+    doc.setFontSize(12);
+    doc.text(`GRAND TOTAL (Incl GST): ₹ ${this.getCombinedGrandTotal().toLocaleString('en-IN')}`, 15, y);
 
-    doc.save('Square_Lantern_Quotation.pdf');
+    doc.save('Square_Planter_Quotation.pdf');
   }
 
   // ===============================
-  // WHATSAPP SHARE
+  // WHATSAPP SHARE (WITH INR ₹)
   // ===============================
 
   shareOnWhatsApp() {
     const number = this.phoneNumber.replace(/\D/g, '');
 
-    let message = `
-${this.companyName}
+    let message = `*${this.companyName}*
 
-SQUARE LANTERN QUOTATION
+*SQUARE PLANTER QUOTATION*
 
-Customer: ${this.customerName}
-Project: ${this.projectName}
+*Customer:* ${this.customerName}
+*Project:* ${this.projectName}
 
-MAIN LANTERN:
+*MAIN PLANTER:*
 Length: ${this.dimensions.length} ${this.unit}
 Width: ${this.dimensions.width} ${this.unit}
 Height: ${this.dimensions.height} ${this.unit}
 Qty: ${this.dimensions.quantity}
 Total Sqft: ${this.calculated.totalSqft.toFixed(2)}
 Selected Thickness: ${this.selectedThickness} mm
-Per Piece Rate: ₹ ${this.getSelectedRate()}
-Subtotal: ₹ ${this.getMainPlanterTotal()}
+Per Piece Rate: ₹ ${this.getSelectedRate().toLocaleString('en-IN')}
+Subtotal: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}
 `;
 
     if (this.extraCalculators.length > 0) {
-      message += `\nADDITIONAL LANTERNS:\n`;
+      message += `\n*ADDITIONAL PLANTERS:*\n`;
       for (let i = 0; i < this.extraCalculators.length; i++) {
         const calc = this.extraCalculators[i];
-        message += `Lantern ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty} - ₹ ${this.getExtraGrandTotal(calc)}\n`;
+        message += `Planter ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty}\n`;
+        message += `Amount: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}\n\n`;
       }
     }
 
-    message += `
-Grand Total (Incl GST): ₹ ${Math.round(this.getGrandTotal())}
+    const mainTotal = this.getMainPlanterTotal();
+    const additionalTotal = this.getAllAdditionalTotal();
+    const subtotal = mainTotal + additionalTotal;
+    const gstAmount = (subtotal * this.gstPercent) / 100;
 
-Thank you.
-`;
+    message += `*SUMMARY:*
+Main Planter: ₹ ${mainTotal.toLocaleString('en-IN')}
+${additionalTotal > 0 ? `Additional: ₹ ${additionalTotal.toLocaleString('en-IN')}\n` : ''}
+Subtotal: ₹ ${Math.round(subtotal).toLocaleString('en-IN')}
+GST (${this.gstPercent}%): ₹ ${Math.round(gstAmount).toLocaleString('en-IN')}
+
+*GRAND TOTAL (Incl GST): ₹ ${this.getCombinedGrandTotal().toLocaleString('en-IN')}*
+
+Thank you for your business!`;
 
     const encoded = encodeURIComponent(message);
     const url = number
