@@ -38,9 +38,9 @@ export class RoundPlanters {
   // ===============================
 
   dimensions = {
-    topDia: 18, // Default to match Excel example
+    topDia: 18,
     height: 0,
-    quantity: 10 // Default to match Excel example
+    quantity: 10
   };
 
   // ===============================
@@ -59,20 +59,26 @@ export class RoundPlanters {
   };
 
   // ===============================
+  // ADDITIONAL CALCULATORS
+  // ===============================
+
+  extraCalculators: any[] = [];
+
+  // ===============================
   // THICKNESS SELECT
   // ===============================
 
   selectThickness(value: number) {
     this.selectedThickness = value;
+    this.calculateAll();
   }
 
   // ===============================
-  // UNIT CONVERSION (if needed)
+  // UNIT CONVERSION
   // ===============================
 
   convertToInches(value: number): number {
     if (!value) return 0;
-
     switch (this.unit) {
       case 'cm': return value / 2.54;
       case 'mm': return value / 25.4;
@@ -85,7 +91,6 @@ export class RoundPlanters {
   // ===============================
 
   calculateAll() {
-    // Get values and convert to inches if needed
     const D = this.convertToInches(Number(this.dimensions.topDia) || 0);
     const H = this.convertToInches(Number(this.dimensions.height) || 0);
     const Q = Number(this.dimensions.quantity) || 1;
@@ -95,25 +100,20 @@ export class RoundPlanters {
       return;
     }
 
-    // FORMULA 1: TOP CIRCLE = (22/7) × Diameter
     const circumference = (22/7) * D;
-    this.calculated.topCircle = Math.round(circumference * 100) / 100; // Round to 2 decimals for display
+    this.calculated.topCircle = Math.round(circumference * 100) / 100;
 
-    // FORMULA 2: TOTAL SQFT = TOP CIRCLE × Height ÷ 144
-    // Store raw value without rounding for calculations
     const area = (circumference * H) / 144;
     this.calculated.rawTotalSqft = area;
-    this.calculated.totalSqft = Math.round(area * 100) / 100; // Round to 2 decimals for display
+    this.calculated.totalSqft = Math.round(area * 100) / 100;
 
-    // FORMULA 3: DIE COST = Total Sqft × 2140
     const die = area * 2140;
     this.calculated.rawDieCost = die;
-    this.calculated.dieCost = Math.round(die); // Round for display
+    this.calculated.dieCost = Math.round(die);
 
-    // FORMULA 4: DIE COST PER PIECE = Die Cost ÷ Quantity
     const diePerPcs = die / Q;
     this.calculated.rawDieCostPerPcs = diePerPcs;
-    this.calculated.dieCostPerPcs = Math.round(diePerPcs); // Round for display
+    this.calculated.dieCostPerPcs = Math.round(diePerPcs);
   }
 
   resetCalculations() {
@@ -127,35 +127,30 @@ export class RoundPlanters {
   }
 
   // ===============================
-  // RATE CALCULATIONS (Using raw values for accuracy)
+  // RATE CALCULATIONS
   // ===============================
 
-  // FORMULA 5: FRP RATE = (Total Sqft × 321) + Die Cost Per Piece
   getFrpRate(): number {
     return (this.calculated.rawTotalSqft * 321) + this.calculated.rawDieCostPerPcs;
   }
 
-  // FORMULA 6: 2.5mm RATE = FRP Rate + (Total Sqft × 100)
   getRate25(): number {
     return this.getFrpRate() + (this.calculated.rawTotalSqft * 100);
   }
 
-  // FORMULA 7: 3.5mm RATE = FRP Rate + (Total Sqft × 150)
   getRate35(): number {
     return this.getFrpRate() + (this.calculated.rawTotalSqft * 150);
   }
 
-  // FORMULA 8: 5mm RATE = FRP Rate + (Total Sqft × 250)
   getRate5(): number {
     return this.getFrpRate() + (this.calculated.rawTotalSqft * 250);
   }
 
   // ===============================
-  // GET RATE FOR DISPLAY (Round only at final display)
+  // GET RATE FOR DISPLAY
   // ===============================
 
   getDisplayRate(thickness: number): number {
-    // Round to nearest whole number only for display
     switch (thickness) {
       case 2.5: return Math.round(this.getRate25());
       case 3.5: return Math.round(this.getRate35());
@@ -164,7 +159,6 @@ export class RoundPlanters {
     }
   }
 
-  // Get raw rate without rounding (for calculations)
   getRawRate(thickness: number): number {
     switch (thickness) {
       case 2.5: return this.getRate25();
@@ -175,7 +169,7 @@ export class RoundPlanters {
   }
 
   // ===============================
-  // SELECTED RATE (IN INR)
+  // SELECTED RATE
   // ===============================
 
   getSelectedRate(): number {
@@ -187,7 +181,7 @@ export class RoundPlanters {
   }
 
   // ===============================
-  // GST CALCULATIONS (Using raw values)
+  // GST CALCULATIONS
   // ===============================
 
   getSubtotal(): number {
@@ -226,22 +220,8 @@ export class RoundPlanters {
   }
 
   // ===============================
-  // NAVIGATION
+  // ADDITIONAL CALCULATORS METHODS
   // ===============================
-
-  goToSquare() {
-    this.router.navigate(['/square-planters']);
-  }
-
-  goToRound() {
-    this.router.navigate(['/round-planters']);
-  }
-
-  // ===============================
-  // ADDITIONAL CALCULATORS
-  // ===============================
-
-  extraCalculators: any[] = [];
 
   addNewCalculator() {
     this.extraCalculators.push({
@@ -249,10 +229,12 @@ export class RoundPlanters {
       height: 0,
       qty: 1,
       selectedThickness: 1.5,
-      totalSqft: 0,
-      dieCostPerPcs: 0,
       topCircle: 0,
+      totalSqft: 0,
+      dieCost: 0,
+      dieCostPerPcs: 0,
       rawTotalSqft: 0,
+      rawDieCost: 0,
       rawDieCostPerPcs: 0
     });
   }
@@ -261,17 +243,12 @@ export class RoundPlanters {
     this.extraCalculators.splice(index, 1);
   }
 
-  // ===============================
-  // CALCULATE EXTRA (Using raw values)
-  // ===============================
-
   calculateExtra(calc: any) {
     const D = calc.topDia || 0;
     const H = calc.height || 0;
     const Q = calc.qty || 1;
 
     if (D > 0 && H > 0) {
-      // Same formulas as main calculator with 22/7
       const circumference = (22/7) * D;
       const area = (circumference * H) / 144;
       const die = area * 2140;
@@ -279,20 +256,22 @@ export class RoundPlanters {
       calc.topCircle = Math.round(circumference * 100) / 100;
       calc.totalSqft = Math.round(area * 100) / 100;
       calc.rawTotalSqft = area;
-      calc.dieCostPerPcs = Math.round(die / Q);
+      
+      calc.rawDieCost = die;
+      calc.dieCost = Math.round(die);
+      
       calc.rawDieCostPerPcs = die / Q;
+      calc.dieCostPerPcs = Math.round(die / Q);
     } else {
       calc.topCircle = 0;
       calc.totalSqft = 0;
-      calc.rawTotalSqft = 0;
+      calc.dieCost = 0;
       calc.dieCostPerPcs = 0;
+      calc.rawTotalSqft = 0;
+      calc.rawDieCost = 0;
       calc.rawDieCostPerPcs = 0;
     }
   }
-
-  // ===============================
-  // GET EXTRA RATE (Using raw values)
-  // ===============================
 
   getExtraRate(calc: any): number {
     if (!calc.rawTotalSqft) return 0;
@@ -326,10 +305,6 @@ export class RoundPlanters {
     return final;
   }
 
-  // ===============================
-  // GET EXTRA GRAND TOTAL
-  // ===============================
-
   getExtraGrandTotal(calc: any): number {
     return Math.round(this.getExtraRawRate(calc) * (calc.qty || 1));
   }
@@ -356,6 +331,18 @@ export class RoundPlanters {
     const subtotal = mainTotal + additionalTotal;
     const gstAmount = (subtotal * (this.gstPercent || 0)) / 100;
     return Math.round(subtotal + gstAmount);
+  }
+
+  // ===============================
+  // NAVIGATION
+  // ===============================
+
+  goToSquare() {
+    this.router.navigate(['/square-planters']);
+  }
+
+  goToRound() {
+    this.router.navigate(['/round-planters']);
   }
 
   // ===============================
@@ -438,6 +425,8 @@ export class RoundPlanters {
         y += 6;
         doc.text(`Total Sqft: ${calc.rawTotalSqft.toFixed(6)}`, 20, y);
         y += 6;
+        doc.text(`Die Cost: ₹ ${calc.rawDieCost.toFixed(2)}`, 20, y);
+        y += 6;
         doc.text(`Die Cost/PCS: ₹ ${calc.rawDieCostPerPcs.toFixed(6)}`, 20, y);
         y += 6;
         doc.text(`Rate: ₹ ${this.getExtraRawRate(calc).toFixed(6)}`, 20, y);
@@ -512,6 +501,7 @@ Subtotal: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}
         const calc = this.extraCalculators[i];
         message += `Planter ${i + 1}: Dia ${calc.topDia}", Ht ${calc.height}", Qty ${calc.qty}\n`;
         message += `Total Sqft: ${calc.rawTotalSqft.toFixed(6)}\n`;
+        message += `Die Cost: ₹ ${calc.rawDieCost.toFixed(2)}\n`;
         message += `Die Cost/PCS: ₹ ${calc.rawDieCostPerPcs.toFixed(6)}\n`;
         message += `Amount: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}\n\n`;
       }

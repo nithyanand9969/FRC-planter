@@ -29,6 +29,8 @@ export class SQUARELANTERS {
   customerName = '';
   projectName = '';
   phoneNumber = '';
+  
+  // Single GST for all planters
   gstPercent = 18;
 
   dimensions = {
@@ -58,6 +60,7 @@ export class SQUARELANTERS {
 
   selectThickness(value: number) {
     this.selectedThickness = value;
+    this.calculateAll();
   }
 
   // ===============================
@@ -139,22 +142,6 @@ export class SQUARELANTERS {
   }
 
   // ===============================
-  // GST CALCULATION
-  // ===============================
-
-  getSubtotal(): number {
-    return this.getSelectedRate() * (this.dimensions.quantity || 1);
-  }
-
-  getGstAmount(): number {
-    return Math.round((this.getSubtotal() * (this.gstPercent || 0)) / 100);
-  }
-
-  getGrandTotal(): number {
-    return Math.round(this.getSubtotal() + this.getGstAmount());
-  }
-
-  // ===============================
   // MAIN PLANTER TOTAL (Without GST)
   // ===============================
 
@@ -174,7 +161,6 @@ export class SQUARELANTERS {
       quantity: 1
     };
     this.selectedThickness = 1.5;
-    this.gstPercent = 18;
     this.calculateAll();
   }
 
@@ -274,7 +260,7 @@ export class SQUARELANTERS {
   }
 
   // ===============================
-  // GET COMBINED GRAND TOTAL (IN INR)
+  // GET COMBINED GRAND TOTAL (WITH SINGLE GST)
   // ===============================
 
   getCombinedGrandTotal(): number {
@@ -303,7 +289,7 @@ export class SQUARELANTERS {
   }
 
   // ===============================
-  // PDF GENERATION (WITH INR ₹)
+  // PDF GENERATION
   // ===============================
 
   generatePDF() {
@@ -393,7 +379,7 @@ export class SQUARELANTERS {
   }
 
   // ===============================
-  // WHATSAPP SHARE (WITH INR ₹)
+  // WHATSAPP SHARE
   // ===============================
 
   shareOnWhatsApp() {
