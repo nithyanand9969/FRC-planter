@@ -4,9 +4,11 @@
 
     <!-- PIN SCREEN -->
     <div *ngIf="!isAuthenticated">
+  
+     
+<h2 class="text-2xl font-bold mb-6">Enter your pin</h2>
 
-      <h2 class="text-2xl font-bold mb-6">4 Digit PIN</h2>
-
+  
       <input type="password"
              maxlength="4"
              [(ngModel)]="enteredPin"
@@ -26,7 +28,8 @@
     <!-- MENU SCREEN -->
     <div *ngIf="isAuthenticated">
 
-      <h2 class="text-2xl font-bold mb-6">Select Calculator</h2>
+      <h2 class="text-2xl font-bold mb-6">Select Calculator </h2>
+     
 
       <div class="flex flex-col gap-4">
 
