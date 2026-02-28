@@ -67,10 +67,10 @@ export class SQUARELANTERS {
   // UNIT CONVERSION
   // ===============================
 
-  convertToInches(value: number): number {
+ convertToInches(value: number, unit: 'inch' | 'cm' | 'mm'): number {
     if (!value) return 0;
 
-    switch (this.unit) {
+    switch (unit) {
       case 'cm': return value / 2.54;
       case 'mm': return value / 25.4;
       default: return value;
@@ -81,29 +81,31 @@ export class SQUARELANTERS {
   // MAIN CALCULATION
   // ===============================
 
+ 
   calculateAll() {
     const { length, width, height, quantity } = this.dimensions;
 
-    const L = this.convertToInches(length || 0);
-    const W = this.convertToInches(width || 0);
-    const H = this.convertToInches(height || 0);
+    const L = this.convertToInches(length, this.unit);
+    const W = this.convertToInches(width, this.unit);
+    const H = this.convertToInches(height, this.unit);
 
-    if (L > 0 && W > 0 && H > 0) {
-      const perimeter = 2 * (L + W);
-      this.calculated.fourSide = parseFloat(((perimeter * H) / 144).toFixed(2));
-    } else {
-      this.calculated.fourSide = 0;
-    }
+    const perimeter = 2 * (L + W);
 
-    this.calculated.bottom = (L > 0 && W > 0) ? parseFloat(((L * W) / 144).toFixed(2)) : 0;
+    this.calculated.fourSide =
+      L && W && H ? parseFloat(((perimeter * H) / 144).toFixed(2)) : 0;
 
-    this.calculated.totalSqft = parseFloat((this.calculated.fourSide + this.calculated.bottom).toFixed(2));
+    this.calculated.bottom =
+      L && W ? parseFloat(((L * W) / 144).toFixed(2)) : 0;
+
+    this.calculated.totalSqft =
+      parseFloat((this.calculated.fourSide + this.calculated.bottom).toFixed(2));
 
     const die = this.calculated.totalSqft * 1070;
-    this.calculated.dieCost = Math.round(die);
-    this.calculated.dieCostPerPcs = quantity > 0 ? Math.round(die / quantity) : 0;
-  }
 
+    this.calculated.dieCost = Math.round(die);
+    this.calculated.dieCostPerPcs =
+      quantity > 0 ? Math.round(die / quantity) : 0;
+  }
   // ===============================
   // RATE CALCULATIONS (ALL IN INR ₹)
   // ===============================
@@ -174,6 +176,7 @@ export class SQUARELANTERS {
       width: 0,
       height: 0,
       qty: 1,
+      unit: 'inch', // ✅ independent unit
       selectedThickness: 1.5,
       fourSide: 0,
       bottom: 0,
@@ -183,41 +186,44 @@ export class SQUARELANTERS {
     });
   }
 
+
   removeCalculator(index: number) {
     this.extraCalculators.splice(index, 1);
   }
 
-  calculateExtra(calc: any) {
-    const L = this.convertToInches(calc.length || 0);
-    const W = this.convertToInches(calc.width || 0);
-    const H = this.convertToInches(calc.height || 0);
+    calculateExtra(calc: any) {
+
+    const L = this.convertToInches(calc.length, calc.unit);
+    const W = this.convertToInches(calc.width, calc.unit);
+    const H = this.convertToInches(calc.height, calc.unit);
     const Q = calc.qty || 1;
 
-    if (L > 0 && W > 0 && H > 0) {
+    if (L && W && H) {
+
       const perimeter = 2 * (L + W);
       const fourSide = (perimeter * H) / 144;
       const bottom = (L * W) / 144;
       const totalSqft = fourSide + bottom;
-      
+
       const dieCostPerPcs = (totalSqft * 1070) / Q;
 
       calc.fourSide = parseFloat(fourSide.toFixed(2));
       calc.bottom = parseFloat(bottom.toFixed(2));
       calc.totalSqft = parseFloat(totalSqft.toFixed(2));
       calc.dieCostPerPcs = Math.round(dieCostPerPcs);
-      
-      // Calculate material cost based on selected thickness
-      const baseRate = (totalSqft * 321) + dieCostPerPcs;
-      let finalRate = baseRate;
-      
+
+      // Material Cost
+      let baseRate = (totalSqft * 321) + dieCostPerPcs;
+
       if (calc.selectedThickness === 2.5)
-        finalRate += totalSqft * 100;
+        baseRate += totalSqft * 100;
       else if (calc.selectedThickness === 3.5)
-        finalRate += totalSqft * 150;
+        baseRate += totalSqft * 150;
       else if (calc.selectedThickness === 5.0)
-        finalRate += totalSqft * 250;
-        
-      calc.materialCost = Math.round(finalRate);
+        baseRate += totalSqft * 250;
+
+      calc.materialCost = Math.round(baseRate);
+
     } else {
       calc.fourSide = 0;
       calc.bottom = 0;
