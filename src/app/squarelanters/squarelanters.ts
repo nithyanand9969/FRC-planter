@@ -67,13 +67,16 @@ export class SQUARELANTERS {
   // UNIT CONVERSION
   // ===============================
 
- convertToInches(value: number, unit: 'inch' | 'cm' | 'mm'): number {
-    if (!value) return 0;
+  convertToInches(value: number, unit: string): number {
+    if (!value || isNaN(value)) return 0;
 
     switch (unit) {
-      case 'cm': return value / 2.54;
-      case 'mm': return value / 25.4;
-      default: return value;
+      case 'cm': 
+        return Number((value / 2.54).toFixed(4));
+      case 'mm': 
+        return Number((value / 25.4).toFixed(4));
+      default: // 'inch'
+        return Number(value.toFixed(4));
     }
   }
 
@@ -81,31 +84,29 @@ export class SQUARELANTERS {
   // MAIN CALCULATION
   // ===============================
 
- 
   calculateAll() {
     const { length, width, height, quantity } = this.dimensions;
 
-    const L = this.convertToInches(length, this.unit);
-    const W = this.convertToInches(width, this.unit);
-    const H = this.convertToInches(height, this.unit);
+    const L = this.convertToInches(length || 0, this.unit);
+    const W = this.convertToInches(width || 0, this.unit);
+    const H = this.convertToInches(height || 0, this.unit);
 
-    const perimeter = 2 * (L + W);
+    if (L > 0 && W > 0 && H > 0) {
+      const perimeter = 2 * (L + W);
+      this.calculated.fourSide = parseFloat(((perimeter * H) / 144).toFixed(2));
+    } else {
+      this.calculated.fourSide = 0;
+    }
 
-    this.calculated.fourSide =
-      L && W && H ? parseFloat(((perimeter * H) / 144).toFixed(2)) : 0;
+    this.calculated.bottom = (L > 0 && W > 0) ? parseFloat(((L * W) / 144).toFixed(2)) : 0;
 
-    this.calculated.bottom =
-      L && W ? parseFloat(((L * W) / 144).toFixed(2)) : 0;
-
-    this.calculated.totalSqft =
-      parseFloat((this.calculated.fourSide + this.calculated.bottom).toFixed(2));
+    this.calculated.totalSqft = parseFloat((this.calculated.fourSide + this.calculated.bottom).toFixed(2));
 
     const die = this.calculated.totalSqft * 1070;
-
     this.calculated.dieCost = Math.round(die);
-    this.calculated.dieCostPerPcs =
-      quantity > 0 ? Math.round(die / quantity) : 0;
+    this.calculated.dieCostPerPcs = quantity > 0 ? Math.round(die / quantity) : 0;
   }
+
   // ===============================
   // RATE CALCULATIONS (ALL IN INR ₹)
   // ===============================
@@ -176,7 +177,7 @@ export class SQUARELANTERS {
       width: 0,
       height: 0,
       qty: 1,
-      unit: 'inch', // ✅ independent unit
+      unit: 'inch',
       selectedThickness: 1.5,
       fourSide: 0,
       bottom: 0,
@@ -186,44 +187,49 @@ export class SQUARELANTERS {
     });
   }
 
-
   removeCalculator(index: number) {
     this.extraCalculators.splice(index, 1);
   }
 
-    calculateExtra(calc: any) {
-
-    const L = this.convertToInches(calc.length, calc.unit);
-    const W = this.convertToInches(calc.width, calc.unit);
-    const H = this.convertToInches(calc.height, calc.unit);
+  calculateExtra(calc: any) {
+    // Use calc.unit for conversion with proper decimal handling
+    const L = this.convertToInches(calc.length || 0, calc.unit || 'inch');
+    const W = this.convertToInches(calc.width || 0, calc.unit || 'inch');
+    const H = this.convertToInches(calc.height || 0, calc.unit || 'inch');
     const Q = calc.qty || 1;
 
-    if (L && W && H) {
-
+    if (L > 0 && W > 0 && H > 0) {
       const perimeter = 2 * (L + W);
       const fourSide = (perimeter * H) / 144;
       const bottom = (L * W) / 144;
       const totalSqft = fourSide + bottom;
-
+      
+      // Calculate die cost per piece (total die cost divided by quantity)
       const dieCostPerPcs = (totalSqft * 1070) / Q;
+      
+      // Calculate base material cost per piece (without die)
+      const baseMaterialPerPcs = (totalSqft * 321);
+      
+      // Calculate thickness premium based on selected thickness
+      let thicknessPremium = 0;
+      if (calc.selectedThickness === 2.5) {
+        thicknessPremium = totalSqft * 100;
+      } else if (calc.selectedThickness === 3.5) {
+        thicknessPremium = totalSqft * 150;
+      } else if (calc.selectedThickness === 5.0) {
+        thicknessPremium = totalSqft * 250;
+      }
+      // For 1.5mm, thicknessPremium remains 0
+      
+      // Total material cost per piece (base material + thickness premium + die cost per piece)
+      const totalMaterialPerPcs = baseMaterialPerPcs + thicknessPremium + dieCostPerPcs;
 
       calc.fourSide = parseFloat(fourSide.toFixed(2));
       calc.bottom = parseFloat(bottom.toFixed(2));
       calc.totalSqft = parseFloat(totalSqft.toFixed(2));
       calc.dieCostPerPcs = Math.round(dieCostPerPcs);
-
-      // Material Cost
-      let baseRate = (totalSqft * 321) + dieCostPerPcs;
-
-      if (calc.selectedThickness === 2.5)
-        baseRate += totalSqft * 100;
-      else if (calc.selectedThickness === 3.5)
-        baseRate += totalSqft * 150;
-      else if (calc.selectedThickness === 5.0)
-        baseRate += totalSqft * 250;
-
-      calc.materialCost = Math.round(baseRate);
-
+      calc.materialCost = Math.round(totalMaterialPerPcs);
+      
     } else {
       calc.fourSide = 0;
       calc.bottom = 0;
@@ -234,19 +240,50 @@ export class SQUARELANTERS {
   }
 
   getExtraRate(calc: any): number {
-    if (!calc.totalSqft) return 0;
+    if (!calc.totalSqft || calc.totalSqft === 0) return 0;
     
-    const base = (calc.totalSqft * 321) + calc.dieCostPerPcs;
-    let final = base;
+    // Base material cost (without die)
+    const baseMaterial = calc.totalSqft * 321;
+    
+    // Thickness premium based on selected thickness
+    let thicknessPremium = 0;
+    if (calc.selectedThickness === 2.5) {
+      thicknessPremium = calc.totalSqft * 100;
+    } else if (calc.selectedThickness === 3.5) {
+      thicknessPremium = calc.totalSqft * 150;
+    } else if (calc.selectedThickness === 5.0) {
+      thicknessPremium = calc.totalSqft * 250;
+    }
+    // For 1.5mm, thicknessPremium remains 0
+    
+    // Total = base material + thickness premium + die cost per piece
+    const total = baseMaterial + thicknessPremium + (calc.dieCostPerPcs || 0);
+    
+    return Math.round(total);
+  }
 
-    if (calc.selectedThickness === 2.5)
-      final += calc.totalSqft * 100;
-    else if (calc.selectedThickness === 3.5)
-      final += calc.totalSqft * 150;
-    else if (calc.selectedThickness === 5.0)
-      final += calc.totalSqft * 250;
-
-    return Math.round(final);
+  // NEW METHOD: Get rate for a specific thickness option in additional calculators
+  getThicknessRateForCalculator(calc: any, thickness: number): number {
+    if (!calc.totalSqft || calc.totalSqft === 0) return 0;
+    
+    // Base material cost (without die)
+    const baseMaterial = calc.totalSqft * 321;
+    
+    // Thickness premium based on the thickness parameter, not calc.selectedThickness
+    let thicknessPremium = 0;
+    if (thickness === 2.5) {
+      thicknessPremium = calc.totalSqft * 100;
+    } else if (thickness === 3.5) {
+      thicknessPremium = calc.totalSqft * 150;
+    } else if (thickness === 5.0) {
+      thicknessPremium = calc.totalSqft * 250;
+    }
+    // For 1.5mm, thicknessPremium remains 0
+    
+    // Total = base material + thickness premium + die cost per piece
+    const total = baseMaterial + thicknessPremium + (calc.dieCostPerPcs || 0);
+    
+    return Math.round(total);
   }
 
   getExtraGrandTotal(calc: any): number {
@@ -352,9 +389,11 @@ export class SQUARELANTERS {
         const calc = this.extraCalculators[i];
         y += 8;
         doc.setFontSize(10);
-        doc.text(`Planter ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty}`, 15, y);
+        doc.text(`Planter ${i + 1}: L ${calc.length} ${calc.unit}, W ${calc.width} ${calc.unit}, H ${calc.height} ${calc.unit}, Qty ${calc.qty}`, 15, y);
         y += 6;
-        doc.text(`Rate: ₹ ${this.getExtraRate(calc).toLocaleString('en-IN')}`, 20, y);
+        doc.text(`Die Cost/Pc: ₹ ${calc.dieCostPerPcs?.toLocaleString('en-IN') || 0}`, 20, y);
+        y += 6;
+        doc.text(`Material Cost/Pc: ₹ ${calc.materialCost?.toLocaleString('en-IN') || 0}`, 20, y);
         y += 6;
         doc.text(`Total: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}`, 20, y);
       }
@@ -413,8 +452,11 @@ Subtotal: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}
       message += `\n*ADDITIONAL PLANTERS:*\n`;
       for (let i = 0; i < this.extraCalculators.length; i++) {
         const calc = this.extraCalculators[i];
-        message += `Planter ${i + 1}: L ${calc.length}", W ${calc.width}", H ${calc.height}", Qty ${calc.qty}\n`;
-        message += `Amount: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}\n\n`;
+        message += `Planter ${i + 1}: L ${calc.length} ${calc.unit}, W ${calc.width} ${calc.unit}, H ${calc.height} ${calc.unit}, Qty ${calc.qty}\n`;
+        message += `Selected Thickness: ${calc.selectedThickness} mm\n`;
+        message += `Die Cost/Pc: ₹ ${calc.dieCostPerPcs?.toLocaleString('en-IN') || 0}\n`;
+        message += `Material Cost/Pc: ₹ ${calc.materialCost?.toLocaleString('en-IN') || 0}\n`;
+        message += `Total: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}\n\n`;
       }
     }
 
