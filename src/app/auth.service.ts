@@ -3,7 +3,7 @@ import { Injectable } from '@angular/core';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
-  private correctPin = '1234';
+  private correctPin = 'b1302';
 
   verifyPin(pin: string): boolean {
     if (pin === this.correctPin) {

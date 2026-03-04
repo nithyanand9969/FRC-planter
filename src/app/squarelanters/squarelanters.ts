@@ -191,6 +191,46 @@ export class SQUARELANTERS {
     this.extraCalculators.splice(index, 1);
   }
 
+  // ===============================
+// HELPER FUNCTION - NUMBER TO WORDS
+// ===============================
+
+numberToWords(num: number): string {
+
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if (num === 0) return 'Zero';
+
+  const convertLessThanThousand = (n: number): string => {
+    if (n === 0) return '';
+    if (n < 20) return ones[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+    return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
+  };
+
+  const convert = (n: number): string => {
+
+    const crore = Math.floor(n / 10000000);
+    const lakh = Math.floor((n % 10000000) / 100000);
+    const thousand = Math.floor((n % 100000) / 1000);
+    const remainder = n % 1000;
+
+    let result = '';
+
+    if (crore > 0) result += convertLessThanThousand(crore) + ' Crore ';
+    if (lakh > 0) result += convertLessThanThousand(lakh) + ' Lakh ';
+    if (thousand > 0) result += convertLessThanThousand(thousand) + ' Thousand ';
+    if (remainder > 0) result += convertLessThanThousand(remainder);
+
+    return result.trim();
+  };
+
+  return convert(Math.round(num));
+
+}
   calculateExtra(calc: any) {
     // Use calc.unit for conversion with proper decimal handling
     const L = this.convertToInches(calc.length || 0, calc.unit || 'inch');
@@ -335,94 +375,241 @@ export class SQUARELANTERS {
   // PDF GENERATION
   // ===============================
 
-  generatePDF() {
-    const doc = new jsPDF();
-    const today = new Date().toLocaleDateString();
-    let y = 15;
+ generatePDF() {
 
-    // Header
-    doc.setFontSize(16);
-    doc.text(this.companyName, 105, y, { align: 'center' });
+  const doc = new jsPDF();
 
-    y += 10;
-    doc.setFontSize(10);
-    doc.text(`Date: ${today}`, 150, 10);
+  const today = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit'
+  }).replace(/ /g, '-');
 
-    // Client Details
-    y += 10;
-    doc.text(`Customer: ${this.customerName}`, 10, y);
-    y += 6;
-    doc.text(`Project: ${this.projectName}`, 10, y);
-    y += 6;
-    doc.text(`Phone: ${this.phoneNumber}`, 10, y);
+  let y = 15;
 
-    // Main Planter Details
-    y += 10;
-    doc.setFontSize(12);
-    doc.text('MAIN PLANTER:', 10, y);
-    
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Length: ${this.dimensions.length} ${this.unit}`, 15, y);
-    y += 6;
-    doc.text(`Width: ${this.dimensions.width} ${this.unit}`, 15, y);
-    y += 6;
-    doc.text(`Height: ${this.dimensions.height} ${this.unit}`, 15, y);
-    y += 6;
-    doc.text(`Quantity: ${this.dimensions.quantity}`, 15, y);
-    y += 6;
-    doc.text(`Total Sqft: ${this.calculated.totalSqft.toFixed(2)}`, 15, y);
-    y += 6;
-    doc.text(`Selected Thickness: ${this.selectedThickness} mm`, 15, y);
-    y += 6;
-    doc.text(`Per Piece Rate: ₹ ${this.getSelectedRate().toLocaleString('en-IN')}`, 15, y);
-    y += 6;
-    doc.text(`Main Planter Total: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}`, 15, y);
-    
-    // Additional Planters
-    if (this.extraCalculators.length > 0) {
-      y += 10;
-      doc.setFontSize(12);
-      doc.text('ADDITIONAL PLANTERS:', 10, y);
-      
-      for (let i = 0; i < this.extraCalculators.length; i++) {
-        const calc = this.extraCalculators[i];
-        y += 8;
-        doc.setFontSize(10);
-        doc.text(`Planter ${i + 1}: L ${calc.length} ${calc.unit}, W ${calc.width} ${calc.unit}, H ${calc.height} ${calc.unit}, Qty ${calc.qty}`, 15, y);
-        y += 6;
-        doc.text(`Die Cost/Pc: ₹ ${calc.dieCostPerPcs?.toLocaleString('en-IN') || 0}`, 20, y);
-        y += 6;
-        doc.text(`Material Cost/Pc: ₹ ${calc.materialCost?.toLocaleString('en-IN') || 0}`, 20, y);
-        y += 6;
-        doc.text(`Total: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}`, 20, y);
-      }
-    }
+  // ===============================
+  // HEADER
+  // ===============================
 
-    // Totals
-    y += 10;
-    doc.setFontSize(12);
-    doc.text('SUMMARY:', 10, y);
-    
-    y += 8;
-    doc.setFontSize(10);
-    doc.text(`Main Planter Total: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}`, 15, y);
-    
-    if (this.extraCalculators.length > 0) {
-      y += 6;
-      doc.text(`Additional Planters Total: ₹ ${this.getAllAdditionalTotal().toLocaleString('en-IN')}`, 15, y);
-    }
-    
-    y += 6;
-    doc.text(`GST (${this.gstPercent}%): ₹ ${Math.round((this.getMainPlanterTotal() + this.getAllAdditionalTotal()) * this.gstPercent / 100).toLocaleString('en-IN')}`, 15, y);
-    
-    y += 8;
-    doc.setFontSize(12);
-    doc.text(`GRAND TOTAL (Incl GST): ₹ ${this.getCombinedGrandTotal().toLocaleString('en-IN')}`, 15, y);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SAIRAJ FRP GARDENS PRIVATE LIMITED', 105, y, { align: 'center' });
 
-    doc.save('Square_Planter_Quotation.pdf');
+  y += 7;
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('H No 2699, Gala No. 8 & 9, Rajlaxmi Sulzer Park, Sonale, Bhiwandi - 421302', 105, y, { align: 'center' });
+
+  y += 4;
+  doc.text('GSTIN: 27ABMCS9351E1ZY | State: Maharashtra (27)', 105, y, { align: 'center' });
+
+  y += 10;
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('QUOTATION', 105, y, { align: 'center' });
+
+  y += 10;
+
+  // ===============================
+  // CUSTOMER DETAILS
+  // ===============================
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Bill To:', 14, y);
+
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+
+  doc.text(this.customerName || '', 14, y);
+  y += 5;
+  doc.text(`Project: ${this.projectName}`, 14, y);
+  y += 5;
+  doc.text(`Phone: ${this.phoneNumber}`, 14, y);
+
+  y += 10;
+
+  // ===============================
+  // TABLE STRUCTURE
+  // ===============================
+
+  const tableStartY = y;
+
+  doc.rect(14, y, 186, 70);
+
+  doc.line(25, y, 25, y + 70);
+  doc.line(120, y, 120, y + 70);
+  doc.line(145, y, 145, y + 70);
+  doc.line(170, y, 170, y + 70);
+
+  y += 6;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+
+  doc.text('Sl', 16, y);
+  doc.text('Description of Goods and Services', 28, y);
+  doc.text('Qty', 125, y);
+  doc.text('Rate', 150, y);
+  doc.text('Amount', 175, y);
+
+  y += 4;
+  doc.line(14, y, 200, y);
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+
+  let itemNo = 1;
+
+  // ===============================
+  // MAIN PRODUCT
+  // ===============================
+
+  const ratePerPiece = this.getSelectedRate();
+  const mainTotal = this.getMainPlanterTotal();
+
+  doc.text(String(itemNo), 16, y);
+
+  doc.text(
+    `Customize Size (L ${this.dimensions.length} x W ${this.dimensions.width} x H ${this.dimensions.height} ${this.unit})`,
+    28,
+    y
+  );
+
+  doc.text(`${this.dimensions.quantity} PCS`, 125, y);
+  doc.text(ratePerPiece.toLocaleString('en-IN'), 150, y);
+  doc.text(mainTotal.toLocaleString('en-IN'), 175, y);
+
+  y += 6;
+  itemNo++;
+
+  // ===============================
+  // MOULD CHARGE
+  // ===============================
+
+  const mouldCost = Math.round(this.calculated.totalSqft * 1070);
+
+  if (mouldCost > 0) {
+
+    doc.text(String(itemNo), 16, y);
+    doc.text('Mould Charge', 28, y);
+    doc.text('1 Set', 125, y);
+    doc.text(mouldCost.toLocaleString('en-IN'), 150, y);
+    doc.text(mouldCost.toLocaleString('en-IN'), 175, y);
+
+    y += 6;
   }
 
+  // ===============================
+  // TOTALS
+  // ===============================
+
+  const subtotal = mainTotal + mouldCost;
+  const gstAmount = Math.round(subtotal * this.gstPercent / 100);
+
+  const cgst = Math.round(gstAmount / 2);
+  const sgst = Math.round(gstAmount / 2);
+
+  const grandTotal = subtotal + gstAmount;
+
+  y += 5;
+
+  doc.setFont('helvetica', 'bold');
+
+  doc.text(`CGST OUTWARD @ ${this.gstPercent/2}%`, 28, y);
+  doc.text(cgst.toLocaleString('en-IN'), 175, y);
+
+  y += 6;
+
+  doc.text(`SGST OUTWARD @ ${this.gstPercent/2}%`, 28, y);
+  doc.text(sgst.toLocaleString('en-IN'), 175, y);
+
+  y += 6;
+
+  doc.line(14, y, 200, y);
+
+  y += 6;
+
+  doc.text('Total', 150, y);
+  doc.text(`₹ ${grandTotal.toLocaleString('en-IN')}`, 175, y);
+
+  // ===============================
+  // DECLARATION
+  // ===============================
+
+  y = tableStartY + 75;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  doc.text('Amount Chargeable (in words)', 14, y);
+
+  y += 5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(`INR ${this.numberToWords(grandTotal)} Only`, 14, y);
+
+  y += 15;
+
+  doc.setFont('helvetica', 'normal');
+  doc.text("Company's PAN :", 14, y);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("ABMCS9351E", 50, y);
+
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.text("Declaration:", 14, y);
+
+  y += 4;
+  doc.text("1- Transport Extra as Below Porter", 14, y);
+
+  y += 4;
+  doc.text("2- Advance 50% Confirm Order and 50% at Final Delivery", 14, y);
+
+  y += 4;
+  doc.text("3- Mould Life 40 pcs", 14, y);
+
+  y += 4;
+  doc.text("Note: This Quotation is valid for 30 days only.", 14, y);
+
+  // ===============================
+  // BANK DETAILS
+  // ===============================
+
+  let rightY = tableStartY + 90;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Company's Bank Details", 120, rightY);
+
+  rightY += 6;
+
+  doc.setFont('helvetica', 'normal');
+  doc.text("Bank Name : Union Bank of India", 120, rightY);
+
+  rightY += 4;
+  doc.text("A/c No. : 307821318590006", 120, rightY);
+
+  rightY += 4;
+  doc.text("Branch & IFS Code : UBIN0390784", 120, rightY);
+
+  rightY += 10;
+
+  doc.rect(120, rightY, 75, 18);
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("for SAIRAJ FRP GARDENS PRIVATE LIMITED", 122, rightY + 6);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text("Authorised Signatory", 150, rightY + 14);
+
+  doc.setFontSize(8);
+  doc.text("This is a Computer Generated Document", 105, 285, { align: 'center' });
+
+  doc.save('SAIRAJ_FRP_Square_Planter_Quotation.pdf');
+}
   // ===============================
   // WHATSAPP SHARE
   // ===============================

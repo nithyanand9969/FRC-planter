@@ -32,15 +32,19 @@ export class RoundPlanters {
   projectName: string = '';
   phoneNumber: string = '';
   gstPercent: number = 18;
+  customerAddress: string = '';
+customerCity: string = '';
+customerState: string = '';
+customerGST: string = '';
 
   // ===============================
   // INPUTS
   // ===============================
 
   dimensions = {
-    topDia: 18,
+    topDia: 0,
     height: 0,
-    quantity: 10
+    quantity: 0
   };
 
   // ===============================
@@ -394,315 +398,228 @@ export class RoundPlanters {
 // ===============================
 
 generatePDF() {
+
   const doc = new jsPDF();
-  const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-  
+  const today = new Date().toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: '2-digit'
+  }).replace(/ /g, '-');
+
   let y = 15;
 
-  // ====================================
-  // HEADER - Company Name (SAIRAJ FRP - Fixed)
-  // ====================================
+  // ===============================
+  // HEADER
+  // ===============================
+
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text('SAIRAJ FRP GARDENS PRIVATE LIMITED', 105, y, { align: 'center' });
-  
+
   y += 7;
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('H No 2699, Gala No. 8 & 9, Rajlaxmi Sulzer Park, Bldg No O, Sonale Bhiwandi-421302', 105, y, { align: 'center' });
-  
+  doc.text('H No 2699, Gala No. 8 & 9, Rajlaxmi Sulzer Park, Sonale, Bhiwandi - 421302', 105, y, { align: 'center' });
+
   y += 4;
-  doc.text(`GSTIN/UIN: 27ABMCS9351E12Y      State Name : Maharashtra, Code : 27      CIN: U23102MH2024PTC420821`, 105, y, { align: 'center' });
-  
-  y += 4;
-  doc.text(`E-Mail : info@sairajfrp.com`, 105, y, { align: 'center' });
-  
-  y += 8;
-  
-  // ====================================
-  // QUOTATION HEADER
-  // ====================================
+  doc.text('GSTIN: 27ABMCS9351E1ZY | State: Maharashtra (27)', 105, y, { align: 'center' });
+
+  y += 10;
+
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.text('QUOTATION', 105, y, { align: 'center' });
-  
-  y += 8;
-  
-  // ====================================
-  // QUOTATION NUMBER AND DATE
-  // ====================================
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  
-  // Draw boxes for Quotation No. and Date
-  doc.rect(14, y - 4, 90, 8);
-  doc.rect(105, y - 4, 90, 8);
-  
-  doc.text('Quotation No.', 16, y);
-  doc.text('Dated', 107, y);
-  
-  doc.setFont('helvetica', 'bold');
-  doc.text('1', 50, y);
-  doc.text(today, 130, y);
-  
+
   y += 10;
-  
-  // Buyer's Ref and Other References
-  doc.setFont('helvetica', 'normal');
-  doc.rect(14, y - 4, 90, 8);
-  doc.rect(105, y - 4, 90, 8);
-  
-  doc.text(`Buyer's Ref./Order No.`, 16, y);
-  doc.text('Other References', 107, y);
-  
+
+  // ===============================
+  // CUSTOMER DETAILS
+  // ===============================
+
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.text('1', 50, y);
-  
-  y += 12;
-  
-  // ====================================
-  // CONSIGNEE AND BUYER (取自表单)
-  // ====================================
-  doc.setFont('helvetica', 'bold');
-  doc.text('Consignee (Ship to)', 14, y);
-  doc.text('Buyer (Bill to)', 105, y);
-  
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  
-  // 使用表单中的客户名称，如果没有则显示默认值
-  const buyerName = this.customerName || 'Medley Pharmaceuticals Ltd';
-  const buyerAddress = this.projectName || 'Medley House D2, Road No-16, M.I.D.C';
-  const buyerCity = 'Area Andheri East Mumbai-400093'; // 可以添加城市字段到表单
-  
-  doc.text(buyerName, 14, y);
-  doc.text(buyerName, 105, y);
-  
-  y += 5;
-  doc.text(buyerAddress, 14, y);
-  doc.text(buyerAddress, 105, y);
-  
-  y += 5;
-  doc.text(buyerCity, 14, y);
-  doc.text(buyerCity, 105, y);
-  
-  y += 5;
-  doc.text('State Name : Maharashtra, Code : 27', 14, y);
-  doc.text('State Name : Maharashtra, Code : 27', 105, y);
-  
-  y += 12;
-  
-  // ====================================
-  // TABLE HEADER
-  // ====================================
-  const tableTop = y;
-  const col1 = 14;  // Description
-  const col2 = 90;  // HSN/SAC
-  const col3 = 110; // Due on
-  const col4 = 125; // Quantity
-  const col5 = 145; // Rate
-  const col6 = 165; // per
-  const col7 = 180; // Disc. %
-  const col8 = 195; // Amount
-  
-  // Draw table header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.text('Description of Goods and Services', col1, y);
-  doc.text('HSN/SAC', col2, y);
-  doc.text('Due on', col3, y);
-  doc.text('Quantity', col4, y);
-  doc.text('Rate', col5, y);
-  doc.text('per', col6, y);
-  doc.text('Disc. %', col7, y);
-  doc.text('Amount', col8, y);
-  
-  y += 5;
-  
-  // Draw horizontal line
-  doc.line(14, y, 205, y);
-  y += 3;
-  
-  // ====================================
-  // TABLE ROWS - MAIN PLANTER (取自计算器)
-  // ====================================
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  
-  let itemNumber = 1;
-  
-  // Main Planter Row
-  const mainDesc = `${itemNumber} Customize Size (⌀${this.dimensions.topDia}×${this.dimensions.height} ${this.unit})`;
-  doc.text(mainDesc.substring(0, 30), col1, y);
-  doc.text('7019', col2, y);
-  doc.text(today, col3, y);
-  doc.text(`${this.dimensions.quantity} PCS`, col4, y);
-  doc.text(`${this.getSelectedRate().toLocaleString('en-IN')}`, col5, y);
-  doc.text('PCS', col6, y);
-  doc.text('-', col7, y);
-  doc.text(`${this.getMainPlanterTotal().toLocaleString('en-IN')}`, col8, y);
-  
+  doc.text('Bill To:', 14, y);
+
   y += 6;
-  itemNumber++;
-  
-  // Mould Charge Row (if die cost exists)
-  if (this.calculated.dieCost > 0) {
-    doc.text(`${itemNumber} Mould Charge`, col1, y);
-    doc.text('7019', col2, y);
-    doc.text(today, col3, y);
-    doc.text('1 set', col4, y);
-    doc.text(`${Math.round(this.calculated.rawDieCost).toLocaleString('en-IN')}`, col5, y);
-    doc.text('set', col6, y);
-    doc.text('-', col7, y);
-    doc.text(`${Math.round(this.calculated.rawDieCost).toLocaleString('en-IN')}`, col8, y);
-    
-    y += 6;
-    itemNumber++;
+  doc.setFont('helvetica', 'normal');
+
+  doc.text(this.customerName || '', 14, y); y += 5;
+  doc.text(this.customerAddress || '', 14, y); y += 5;
+  doc.text(this.customerCity || '', 14, y); y += 5;
+  doc.text(this.customerState || '', 14, y); y += 5;
+
+  if (this.customerGST) {
+    doc.text(`GSTIN: ${this.customerGST}`, 14, y);
+    y += 5;
   }
-  
-  // Additional Planters (取自额外计算器)
-  for (let i = 0; i < this.extraCalculators.length; i++) {
-    const calc = this.extraCalculators[i];
-    if (calc.qty > 0 && calc.topDia > 0 && calc.height > 0) {
-      const extraDesc = `${itemNumber} Customize Size (⌀${calc.topDia}×${calc.height} ${calc.unit || 'inch'})`;
-      doc.text(extraDesc.substring(0, 30), col1, y);
-      doc.text('7019', col2, y);
-      doc.text(today, col3, y);
-      doc.text(`${calc.qty} PCS`, col4, y);
-      doc.text(`${this.getThicknessRateForCalculator(calc, calc.selectedThickness).toLocaleString('en-IN')}`, col5, y);
-      doc.text('PCS', col6, y);
-      doc.text('-', col7, y);
-      doc.text(`${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}`, col8, y);
-      
-      y += 6;
-      itemNumber++;
-    }
-  }
-  
-  // Draw horizontal line before totals
-  doc.line(14, y, 205, y);
-  y += 5;
-  
-  // ====================================
-  // TOTALS SECTION (使用计算器的值)
-  // ====================================
+
+  y += 8;
+
+  // ===============================
+  // TABLE BORDER
+  // ===============================
+
+  const tableStartY = y;
+
+  doc.rect(14, y, 186, 70); // outer box
+
+  // column lines
+  doc.line(25, y, 25, y + 70);
+  doc.line(120, y, 120, y + 70);
+  doc.line(145, y, 145, y + 70);
+  doc.line(170, y, 170, y + 70);
+
+  y += 6;
+
+  // Table Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Sl', 16, y);
+  doc.text('Description of Goods and Services', 28, y);
+  doc.text('Qty', 125, y);
+  doc.text('Rate', 150, y);
+  doc.text('Amount', 175, y);
+
+  y += 4;
+  doc.line(14, y, 200, y);
+  y += 6;
+
+  doc.setFont('helvetica', 'normal');
+
+  let itemNo = 1;
+
+  // ===============================
+  // MAIN PRODUCT
+  // ===============================
+
+  const ratePerPiece = this.getSelectedRate();
   const mainTotal = this.getMainPlanterTotal();
-  const dieCost = Math.round(this.calculated.rawDieCost);
-  const additionalTotal = this.getAllAdditionalTotal();
-  const subtotal = mainTotal + additionalTotal;
-  const gstAmount = Math.round((subtotal) * this.gstPercent / 100);
+
+  doc.text(String(itemNo), 16, y);
+  doc.text(
+    `Customize Size (Dia ${this.dimensions.topDia} x H ${this.dimensions.height} ${this.unit})`,
+    28,
+    y
+  );
+  doc.text(`${this.dimensions.quantity} PCS`, 125, y);
+  doc.text(ratePerPiece.toLocaleString('en-IN'), 150, y);
+  doc.text(mainTotal.toLocaleString('en-IN'), 175, y);
+
+  y += 6;
+  itemNo++;
+
+  // ===============================
+  // MOULD CHARGE
+  // ===============================
+
+  const mouldCost = Math.round(this.calculated.rawDieCost);
+
+  if (mouldCost > 0) {
+    doc.text(String(itemNo), 16, y);
+    doc.text('Mould Charge', 28, y);
+    doc.text('1 Set', 125, y);
+    doc.text(mouldCost.toLocaleString('en-IN'), 150, y);
+    doc.text(mouldCost.toLocaleString('en-IN'), 175, y);
+    y += 6;
+  }
+
+  // ===============================
+  // TOTALS INSIDE TABLE
+  // ===============================
+
+  const subtotal = mainTotal + mouldCost;
+  const gstAmount = Math.round(subtotal * this.gstPercent / 100);
   const cgst = Math.round(gstAmount / 2);
   const sgst = Math.round(gstAmount / 2);
   const grandTotal = subtotal + gstAmount;
-  
-  // Subtotal
-  doc.setFont('helvetica', 'bold');
-  doc.text('Subtotal', col5 - 10, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${subtotal.toLocaleString('en-IN')}`, col8, y);
-  
-  y += 6;
-  
-  // CGST
-  doc.setFont('helvetica', 'bold');
-  doc.text(`CGST @ ${this.gstPercent/2}%`, col5 - 10, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${cgst.toLocaleString('en-IN')}`, col8, y);
-  
-  y += 6;
-  
-  // SGST
-  doc.setFont('helvetica', 'bold');
-  doc.text(`SGST @ ${this.gstPercent/2}%`, col5 - 10, y);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${sgst.toLocaleString('en-IN')}`, col8, y);
-  
-  y += 6;
-  
-  // Other Charges (if any)
-  if (additionalTotal > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('Other Charges', col5 - 10, y);
-    doc.setFont('helvetica', 'normal');
-    doc.text('-', col8, y);
-    y += 6;
-  }
-  
-  // Draw line before total
-  doc.line(14, y, 205, y);
-  y += 5;
-  
-  // Grand Total
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(11);
-  doc.text('Total', col5 - 10, y);
-  doc.text(`₹ ${grandTotal.toLocaleString('en-IN')}`, col8, y);
-  
-  y += 10;
-  
-  // ====================================
-  // AMOUNT IN WORDS
-  // ====================================
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Amount Chargeable (in words)', 14, y);
-  
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  doc.text(`INR ${this.numberToWords(grandTotal)} Only`, 14, y);
-  
-  y += 10;
-  
-  // ====================================
-  // DECLARATION AND BANK DETAILS
-  // ====================================
-  doc.setFont('helvetica', 'bold');
-  doc.text("Company's PAN : ABMCS9351E", 14, y);
-  
-  y += 6;
-  doc.setFont('helvetica', 'normal');
-  doc.text('Declaration', 14, y);
-  y += 4;
-  doc.text('1-Transport Extra as Below Porter, 2- Advance 50% Conform Order and 50% at Finel Delevery Time, Mould life 50-70 pcs', 14, y);
-  
-  // 添加电话号码到声明中
-  if (this.phoneNumber) {
-    y += 4;
-    doc.text(`Contact: ${this.phoneNumber}`, 14, y);
-  }
-  
-  y += 8;
-  
-  // Bank Details (固定)
-  doc.setFont('helvetica', 'bold');
-  doc.text("Company's Bank Details", 14, y);
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  doc.text('Bank Name : Union Bank of India', 14, y);
-  y += 4;
-  doc.text('A/c No. : 307821318590006', 14, y);
-  y += 4;
-  doc.text('Branch & IFS Code : Bhivandi (Kalyan Bhavandi Road) & UBIN0390784', 14, y);
-  
-  // ====================================
-  // AUTHORIZED SIGNATORY
-  // ====================================
-  doc.setFont('helvetica', 'bold');
-  doc.text('for SAIRAJ FRP GARDENS PRIVATE LIMITED', 140, y - 8);
-  y += 8;
-  doc.text('Authorised Signatory', 155, y);
-  
-  // ====================================
-  // FOOTER (固定)
-  // ====================================
-  y = 280;
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Regd Off : H.No. 2699, Gala - 8 & 9, Bldg - O, Thale Compound, Near Rajlaxmi Sulzer Park, Sonale Village, Bhiwandi, Thane - 421 302, Maharashtra, India.', 105, y, { align: 'center' });
-  y += 3;
-  doc.text('GST IN : 27ABMCS9351E1ZY    CIN : U23102MH2024PTC420821', 105, y, { align: 'center' });
 
-  doc.save('Round_Planter_Quotation.pdf');
+  y += 5;
+
+  doc.setFont('helvetica', 'bold');
+
+  doc.text(`CGST OUTWARD @ ${this.gstPercent/2}%`, 28, y);
+  doc.text(cgst.toLocaleString('en-IN'), 175, y);
+
+  y += 6;
+
+  doc.text(`SGST OUTWARD @ ${this.gstPercent/2}%`, 28, y);
+  doc.text(sgst.toLocaleString('en-IN'), 175, y);
+
+  y += 6;
+
+  doc.line(14, y, 200, y);
+  y += 6;
+
+  doc.text('Total', 150, y);
+  doc.text(`₹ ${grandTotal.toLocaleString('en-IN')}`, 175, y);
+
+  // ===============================
+  // AMOUNT IN WORDS
+  // ===============================
+
+  y = tableStartY + 75;
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  doc.text('Amount Chargeable (in words)', 14, y);
+  y += 5;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text(`INR ${this.numberToWords(grandTotal)} Only`, 14, y);
+
+  // ===============================
+  // PAN + DECLARATION
+  // ===============================
+
+  y += 15;
+
+  doc.setFont('helvetica', 'normal');
+  doc.text("Company's PAN :", 14, y);
+  doc.setFont('helvetica', 'bold');
+  doc.text("ABMCS9351E", 50, y);
+
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.text("Declaration:", 14, y);
+  y += 4;
+  doc.text("1- Transport Extra as Below Porter", 14, y);
+  y += 4;
+  doc.text("2- Advance 50% Confirm Order and 50% at Final Delivery", 14, y);
+  y += 4;
+  doc.text("3- Mould Life 40 pcs", 14, y);
+y += 4;
+doc.text("Note: This Quotation is valid for 30 days only.", 14, y);
+  // ===============================
+  // BANK DETAILS RIGHT SIDE
+  // ===============================
+
+  let rightY = tableStartY + 90;
+
+  doc.setFont('helvetica', 'bold');
+  doc.text("Company's Bank Details", 120, rightY);
+
+  rightY += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.text("Bank Name : Union Bank of India", 120, rightY);
+  rightY += 4;
+  doc.text("A/c No. : 307821318590006", 120, rightY);
+  rightY += 4;
+  doc.text("Branch & IFS Code : UBIN0390784", 120, rightY);
+
+  // Signature box
+  rightY += 10;
+  doc.rect(120, rightY, 75, 18);
+  doc.setFont('helvetica', 'bold');
+  doc.text("for SAIRAJ FRP GARDENS PRIVATE LIMITED", 122, rightY + 6);
+  doc.setFont('helvetica', 'normal');
+  doc.text("Authorised Signatory", 150, rightY + 14);
+
+  // Footer
+  doc.setFontSize(8);
+  doc.text("This is a Computer Generated Document", 105, 285, { align: 'center' });
+
+  doc.save('SAIRAJ_FRP_GARDENS_PRIVATE_LIMITED_Round_Planter_Quotation.pdf');
 }
 
 // ===============================
