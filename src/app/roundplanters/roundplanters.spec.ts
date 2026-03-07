@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ROUNDPLANTERS } from './roundplanters';
+import { RoundPlanters } from './roundplanters';
 
-describe('ROUNDPLANTERS', () => {
-  let component: ROUNDPLANTERS;
-  let fixture: ComponentFixture<ROUNDPLANTERS>;
+describe('RoundPlanters', () => {
+  let component: RoundPlanters;
+  let fixture: ComponentFixture<RoundPlanters>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ROUNDPLANTERS]
+      imports: [RoundPlanters]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(ROUNDPLANTERS);
+    fixture = TestBed.createComponent(RoundPlanters);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
