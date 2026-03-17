@@ -5,7 +5,6 @@ import { Router } from '@angular/router';
 import { AuthService } from '../auth.service';
 import jsPDF from 'jspdf';
 
-
 @Component({
   selector: 'app-roundplanters',
   standalone: true,
@@ -33,10 +32,11 @@ export class RoundPlanters {
   projectName: string = '';
   phoneNumber: string = '';
   gstPercent: number = 18;
+  commission: number = 0; // Main commission percentage
   customerAddress: string = '';
-customerCity: string = '';
-customerState: string = '';
-customerGST: string = '';
+  customerCity: string = '';
+  customerState: string = '';
+  customerGST: string = '';
 
   // ===============================
   // INPUTS
@@ -45,7 +45,7 @@ customerGST: string = '';
   dimensions = {
     topDia: 0,
     height: 0,
-    quantity: 0
+    quantity: 1
   };
 
   // ===============================
@@ -152,39 +152,39 @@ customerGST: string = '';
   }
 
   numberToWords(num: number): string {
-  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+      'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+    const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
 
-  if (num === 0) return 'Zero';
+    if (num === 0) return 'Zero';
 
-  const convertLessThanThousand = (n: number): string => {
-    if (n === 0) return '';
-    if (n < 20) return ones[n];
-    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
-    return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
-  };
+    const convertLessThanThousand = (n: number): string => {
+      if (n === 0) return '';
+      if (n < 20) return ones[n];
+      if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
+      return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
+    };
 
-  const convert = (n: number): string => {
-    if (n === 0) return '';
-    
-    const crore = Math.floor(n / 10000000);
-    const lakh = Math.floor((n % 10000000) / 100000);
-    const thousand = Math.floor((n % 100000) / 1000);
-    const remainder = n % 1000;
+    const convert = (n: number): string => {
+      if (n === 0) return '';
+      
+      const crore = Math.floor(n / 10000000);
+      const lakh = Math.floor((n % 10000000) / 100000);
+      const thousand = Math.floor((n % 100000) / 1000);
+      const remainder = n % 1000;
 
-    let result = '';
-    if (crore > 0) result += convertLessThanThousand(crore) + ' Crore ';
-    if (lakh > 0) result += convertLessThanThousand(lakh) + ' Lakh ';
-    if (thousand > 0) result += convertLessThanThousand(thousand) + ' Thousand ';
-    if (remainder > 0) result += convertLessThanThousand(remainder);
+      let result = '';
+      if (crore > 0) result += convertLessThanThousand(crore) + ' Crore ';
+      if (lakh > 0) result += convertLessThanThousand(lakh) + ' Lakh ';
+      if (thousand > 0) result += convertLessThanThousand(thousand) + ' Thousand ';
+      if (remainder > 0) result += convertLessThanThousand(remainder);
 
-    return result.trim();
-  };
+      return result.trim();
+    };
 
-  return convert(Math.round(num));
-}
- 
+    return convert(Math.round(num));
+  }
+
   // ===============================
   // GET RATE FOR DISPLAY
   // ===============================
@@ -220,27 +220,19 @@ customerGST: string = '';
   }
 
   // ===============================
-  // GST CALCULATIONS
+  // MAIN PLANTER TOTAL WITH COMMISSION
   // ===============================
 
-  getSubtotal(): number {
-    return this.getSelectedRawRate() * (this.dimensions.quantity || 1);
+  getMainPlanterSubtotal(): number {
+    return Math.round(this.getSelectedRawRate() * (this.dimensions.quantity || 1));
   }
 
-  getGstAmount(): number {
-    return (this.getSubtotal() * (this.gstPercent || 0)) / 100;
+  getMainPlanterCommission(): number {
+    return (this.getMainPlanterSubtotal() * (this.commission || 0)) / 100;
   }
-
-  getGrandTotal(): number {
-    return Math.round(this.getSubtotal() + this.getGstAmount());
-  }
-
-  // ===============================
-  // MAIN PLANTER TOTAL
-  // ===============================
 
   getMainPlanterTotal(): number {
-    return Math.round(this.getSelectedRawRate() * (this.dimensions.quantity || 1));
+    return Math.round(this.getMainPlanterSubtotal() + this.getMainPlanterCommission());
   }
 
   // ===============================
@@ -255,6 +247,7 @@ customerGST: string = '';
     };
     this.selectedThickness = 1.5;
     this.gstPercent = 18;
+    this.commission = 0;
     this.calculateAll();
   }
 
@@ -269,6 +262,7 @@ customerGST: string = '';
       qty: 1,
       selectedThickness: 1.5,
       unit: 'inch',
+      commission: 0,
       topCircle: 0,
       totalSqft: 0,
       dieCost: 0,
@@ -284,10 +278,8 @@ customerGST: string = '';
   }
 
   calculateExtra(calc: any) {
-    // Use calculator's own unit for conversion
     const unit = calc.unit || 'inch';
     
-    // Convert values to inches based on calculator's unit
     const D = this.convertToInches(calc.topDia || 0, unit);
     const H = this.convertToInches(calc.height || 0, unit);
     const Q = calc.qty || 1;
@@ -351,7 +343,7 @@ customerGST: string = '';
         return Math.round(this.getExtraRate35(calc));
       case 5.0:
         return Math.round(this.getExtraRate5(calc));
-      default: // 1.5
+      default:
         return Math.round(this.getExtraFrpRate(calc));
     }
   }
@@ -375,13 +367,41 @@ customerGST: string = '';
       return base;
   }
 
-  getExtraGrandTotal(calc: any): number {
+  // ===============================
+  // EXTRA CALCULATOR TOTALS WITH COMMISSION
+  // ===============================
+
+  getExtraSubtotal(calc: any): number {
     return Math.round(this.getExtraRawRate(calc) * (calc.qty || 1));
   }
 
+  getExtraCommissionAmount(calc: any): number {
+    return (this.getExtraSubtotal(calc) * (calc.commission || 0)) / 100;
+  }
+
+  getExtraGrandTotal(calc: any): number {
+    return Math.round(this.getExtraSubtotal(calc) + this.getExtraCommissionAmount(calc));
+  }
+
   // ===============================
-  // GET ALL ADDITIONAL PLANTERS TOTAL
+  // GET ALL ADDITIONAL PLANTERS TOTALS
   // ===============================
+
+  getAllAdditionalSubtotal(): number {
+    let total = 0;
+    for (let calc of this.extraCalculators) {
+      total += this.getExtraSubtotal(calc);
+    }
+    return Math.round(total);
+  }
+
+  getAllAdditionalCommission(): number {
+    let total = 0;
+    for (let calc of this.extraCalculators) {
+      total += this.getExtraCommissionAmount(calc);
+    }
+    return Math.round(total);
+  }
 
   getAllAdditionalTotal(): number {
     let total = 0;
@@ -392,15 +412,26 @@ customerGST: string = '';
   }
 
   // ===============================
-  // GET COMBINED GRAND TOTAL
+  // COMBINED TOTALS
   // ===============================
 
+  getCombinedSubtotal(): number {
+    return this.getMainPlanterSubtotal() + this.getAllAdditionalSubtotal();
+  }
+
+  getCombinedCommission(): number {
+    return this.getMainPlanterCommission() + this.getAllAdditionalCommission();
+  }
+
+  getCombinedGST(): number {
+    return (this.getCombinedSubtotal() * (this.gstPercent || 0)) / 100;
+  }
+
   getCombinedGrandTotal(): number {
-    const mainTotal = this.getMainPlanterTotal();
-    const additionalTotal = this.getAllAdditionalTotal();
-    const subtotal = mainTotal + additionalTotal;
-    const gstAmount = (subtotal * (this.gstPercent || 0)) / 100;
-    return Math.round(subtotal + gstAmount);
+    const subtotal = this.getCombinedSubtotal();
+    const commission = this.getCombinedCommission();
+    const gst = (subtotal * (this.gstPercent || 0)) / 100;
+    return Math.round(subtotal + commission + gst);
   }
 
   // ===============================
@@ -428,233 +459,240 @@ customerGST: string = '';
   // PDF GENERATION
   // ===============================
 
- // ===============================
-// PDF GENERATION - Professional Invoice Format
-// ===============================
+  generatePDF() {
+    const doc = new jsPDF();
+    const today = new Date().toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: '2-digit'
+    }).replace(/ /g, '-');
 
-// ===============================
-// PDF GENERATION - Professional Invoice Format with Additional Planters
-// ===============================
+    let y = 15;
 
-generatePDF() {
-  const doc = new jsPDF();
-  const today = new Date().toLocaleDateString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: '2-digit'
-  }).replace(/ /g, '-');
+    // HEADER
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SAIRAJ FRP GARDENS PRIVATE LIMITED', 105, y, { align: 'center' });
 
-  let y = 15;
+    y += 7;
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('H No 2699, Gala No. 8 & 9, Rajlaxmi Sulzer Park, Sonale, Bhiwandi - 421302', 105, y, { align: 'center' });
 
-  // HEADER
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('SAIRAJ FRP GARDENS PRIVATE LIMITED', 105, y, { align: 'center' });
+    y += 4;
+    doc.text('GSTIN: 27ABMCS9351E1ZY | State: Maharashtra (27)', 105, y, { align: 'center' });
 
-  y += 7;
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text('H No 2699, Gala No. 8 & 9, Rajlaxmi Sulzer Park, Sonale, Bhiwandi - 421302', 105, y, { align: 'center' });
+    y += 10;
 
-  y += 4;
-  doc.text('GSTIN: 27ABMCS9351E1ZY | State: Maharashtra (27)', 105, y, { align: 'center' });
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('QUOTATION', 105, y, { align: 'center' });
 
-  y += 10;
+    y += 10;
 
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('QUOTATION', 105, y, { align: 'center' });
+    // CUSTOMER DETAILS
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Bill To:', 14, y);
 
-  y += 10;
+    y += 6;
+    doc.setFont('helvetica', 'normal');
 
-  // CUSTOMER DETAILS
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Bill To:', 14, y);
+    doc.text(this.customerName || '', 14, y); y += 5;
+    doc.text(this.customerAddress || '', 14, y); y += 5;
+    doc.text(this.customerCity || '', 14, y); y += 5;
+    doc.text(this.customerState || '', 14, y); y += 5;
 
-  y += 6;
-  doc.setFont('helvetica', 'normal');
-
-  doc.text(this.customerName || '', 14, y); y += 5;
-  doc.text(this.customerAddress || '', 14, y); y += 5;
-  doc.text(this.customerCity || '', 14, y); y += 5;
-  doc.text(this.customerState || '', 14, y); y += 5;
-
-  if (this.customerGST) {
-    doc.text(`GSTIN: ${this.customerGST}`, 14, y);
-    y += 5;
-  }
-
-  y += 8;
-
-  // TABLE
-  const tableStartY = y;
-
-  let totalItems = 1;
-  totalItems += this.extraCalculators.length;
-
-  const tableHeight = 45 + (totalItems * 6) + 30;
-
-  doc.rect(14, y, 186, tableHeight);
-
-  doc.line(25, y, 25, y + tableHeight);
-  doc.line(120, y, 120, y + tableHeight);
-  doc.line(145, y, 145, y + tableHeight);
-  doc.line(170, y, 170, y + tableHeight);
-
-  y += 6;
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-
-  doc.text('Sl', 16, y);
-  doc.text('Description of Goods and Services', 28, y);
-  doc.text('Qty', 125, y);
-  doc.text('Rate', 150, y);
-  doc.text('Amount', 175, y);
-
-  y += 4;
-  doc.line(14, y, 200, y);
-  y += 6;
-
-  doc.setFont('helvetica', 'normal');
-
-  let itemNo = 1;
-  let subtotal = 0;
-
-  // MAIN PRODUCT
-  const ratePerPiece = this.getSelectedRate();
-  const mainTotal = this.getMainPlanterTotal();
-  subtotal += mainTotal;
-
-  doc.text(String(itemNo), 16, y);
-  doc.text(
-    `Round Planter (Dia ${this.dimensions.topDia} x H ${this.dimensions.height} ${this.unit}) - ${this.selectedThickness}mm`,
-    28,
-    y
-  );
-
-  doc.text(`${this.dimensions.quantity} PCS`, 125, y);
-  doc.text(`Rs. ${ratePerPiece.toLocaleString('en-IN')}`, 150, y);
-  doc.text(`Rs. ${mainTotal.toLocaleString('en-IN')}`, 175, y);
-
-  y += 6;
-  itemNo++;
-
-  // EXTRA ITEMS
-  if (this.extraCalculators.length > 0) {
-    for (let i = 0; i < this.extraCalculators.length; i++) {
-      const calc = this.extraCalculators[i];
-      const extraRate = this.getExtraRate(calc);
-      const extraTotal = this.getExtraGrandTotal(calc);
-
-      subtotal += extraTotal;
-
-      doc.text(String(itemNo), 16, y);
-
-      doc.text(
-        `Round Planter (Dia ${calc.topDia} x H ${calc.height} ${calc.unit || 'inch'}) - ${calc.selectedThickness}mm`,
-        28,
-        y
-      );
-
-      doc.text(`${calc.qty} PCS`, 125, y);
-      doc.text(`Rs. ${extraRate.toLocaleString('en-IN')}`, 150, y);
-      doc.text(`Rs. ${extraTotal.toLocaleString('en-IN')}`, 175, y);
-
-      y += 6;
-      itemNo++;
+    if (this.customerGST) {
+      doc.text(`GSTIN: ${this.customerGST}`, 14, y);
+      y += 5;
     }
+
+    y += 8;
+
+    // TABLE
+    const tableStartY = y;
+
+    let totalItems = 1;
+    totalItems += this.extraCalculators.length;
+
+    const tableHeight = 45 + (totalItems * 6) + 40;
+
+    doc.rect(14, y, 186, tableHeight);
+
+    doc.line(25, y, 25, y + tableHeight);
+    doc.line(120, y, 120, y + tableHeight);
+    doc.line(145, y, 145, y + tableHeight);
+    doc.line(170, y, 170, y + tableHeight);
+
+    y += 6;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+
+    doc.text('Sl', 16, y);
+    doc.text('Description of Goods and Services', 28, y);
+    doc.text('Qty', 125, y);
+    doc.text('Rate', 150, y);
+    doc.text('Amount', 175, y);
+
+    y += 4;
+    doc.line(14, y, 200, y);
+    y += 6;
+
+    doc.setFont('helvetica', 'normal');
+
+    let itemNo = 1;
+    let subtotal = 0;
+
+    // MAIN PRODUCT
+    const ratePerPiece = this.getSelectedRate();
+    const mainSubtotal = this.getMainPlanterSubtotal();
+    const mainCommission = this.getMainPlanterCommission();
+    const mainTotal = this.getMainPlanterTotal();
+    subtotal += mainSubtotal;
+
+    doc.text(String(itemNo), 16, y);
+    doc.text(
+      `Round Planter (Dia ${this.dimensions.topDia} x H ${this.dimensions.height} ${this.unit}) - ${this.selectedThickness}mm`,
+      28,
+      y
+    );
+
+    doc.text(`${this.dimensions.quantity} PCS`, 125, y);
+    doc.text(`Rs. ${ratePerPiece.toLocaleString('en-IN')}`, 150, y);
+    doc.text(`Rs. ${mainSubtotal.toLocaleString('en-IN')}`, 175, y);
+
+    y += 6;
+    
+    if (this.commission > 0) {
+      doc.text(`Commission @ ${this.commission}%`, 28, y);
+      doc.text(`Rs. ${Math.round(mainCommission).toLocaleString('en-IN')}`, 175, y);
+      y += 6;
+    }
+    
+    itemNo++;
+
+    // EXTRA ITEMS
+    if (this.extraCalculators.length > 0) {
+      for (let i = 0; i < this.extraCalculators.length; i++) {
+        const calc = this.extraCalculators[i];
+        const extraRate = this.getExtraRate(calc);
+        const extraSubtotal = this.getExtraSubtotal(calc);
+        const extraCommission = this.getExtraCommissionAmount(calc);
+
+        subtotal += extraSubtotal;
+
+        doc.text(String(itemNo), 16, y);
+
+        doc.text(
+          `Round Planter (Dia ${calc.topDia} x H ${calc.height} ${calc.unit || 'inch'}) - ${calc.selectedThickness}mm`,
+          28,
+          y
+        );
+
+        doc.text(`${calc.qty} PCS`, 125, y);
+        doc.text(`Rs. ${extraRate.toLocaleString('en-IN')}`, 150, y);
+        doc.text(`Rs. ${extraSubtotal.toLocaleString('en-IN')}`, 175, y);
+
+        y += 6;
+        
+        if (calc.commission > 0) {
+          doc.text(`Commission @ ${calc.commission}%`, 28, y);
+          doc.text(`Rs. ${Math.round(extraCommission).toLocaleString('en-IN')}`, 175, y);
+          y += 6;
+        }
+        
+        itemNo++;
+      }
+    }
+
+    y += 5;
+
+    const totalCommission = this.getCombinedCommission();
+    const gstAmount = this.getCombinedGST();
+    const cgst = Math.round(gstAmount / 2);
+    const sgst = Math.round(gstAmount / 2);
+    const grandTotal = this.getCombinedGrandTotal();
+
+    doc.line(14, y, 200, y);
+    y += 6;
+
+    // Subtotal
+    doc.setFont('helvetica', 'normal');
+    doc.text('Subtotal', 120, y);
+    doc.text(`Rs. ${subtotal.toLocaleString('en-IN')}`, 175, y);
+
+    y += 6;
+
+    // Commission total
+    if (totalCommission > 0) {
+      doc.text('Total Commission', 120, y);
+      doc.text(`Rs. ${Math.round(totalCommission).toLocaleString('en-IN')}`, 175, y);
+      y += 6;
+    }
+
+    // CGST
+    doc.text(`CGST @ ${this.gstPercent/2}%`, 120, y);
+    doc.text(`Rs. ${cgst.toLocaleString('en-IN')}`, 175, y);
+
+    y += 6;
+
+    // SGST
+    doc.text(`SGST @ ${this.gstPercent/2}%`, 120, y);
+    doc.text(`Rs. ${sgst.toLocaleString('en-IN')}`, 175, y);
+
+    y += 6;
+
+    doc.line(14, y, 200, y);
+    y += 6;
+
+    // GRAND TOTAL
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('GRAND TOTAL', 120, y);
+    doc.text(`Rs. ${grandTotal.toLocaleString('en-IN')}`, 175, y);
+
+    // AMOUNT WORDS
+    y = tableStartY + tableHeight + 5;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+
+    doc.text('Amount Chargeable (in words):', 14, y);
+    y += 5;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text(`INR ${this.numberToWords(grandTotal)} Only`, 14, y);
+
+    // PAN + DECLARATION
+    y += 15;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text("Company's PAN :", 14, y);
+    doc.text("ABMCS9351E", 50, y);
+
+    y += 6;
+    doc.setFont('helvetica', 'bold');
+    doc.text("Terms and Conditions:", 14, y);
+
+    y += 4;
+    doc.text("1.Transport Extra as Availability", 14, y);
+    y += 4;
+    doc.text("2.Advance 50% to Confirm Order and 50% at Final Delivery", 14, y);
+    y += 4;
+    doc.text("3.This Quotation is valid for 30 days only.", 14, y);
+
+    doc.setFontSize(8);
+    doc.setTextColor(100,100,100);
+    doc.text("This is a Computer Generated Document", 105, 283, { align: 'center' });
+
+    doc.save(`SAIRAJ_FRP_Round_Planter_Quotation_${today}.pdf`);
   }
 
-  y += 5;
-
-  const gstAmount = Math.round(subtotal * this.gstPercent / 100);
-  const cgst = Math.round(gstAmount / 2);
-  const sgst = Math.round(gstAmount / 2);
-  const grandTotal = subtotal + gstAmount;
-
-  // CGST - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.text(`CGST OUTWARD @ ${this.gstPercent/2}%`, 28, y);
-  doc.text(`Rs. ${cgst.toLocaleString('en-IN')}`, 175, y);
-
-  y += 6;
-
-  // SGST - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.text(`SGST OUTWARD @ ${this.gstPercent/2}%`, 28, y);
-  doc.text(`Rs. ${sgst.toLocaleString('en-IN')}`, 175, y);
-
-  y += 6;
-
-  doc.line(14, y, 200, y);
-  y += 6;
-
-  // Subtotal - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.text('Subtotal', 120, y);
-  doc.text(`Rs. ${subtotal.toLocaleString('en-IN')}`, 175, y);
-
-  y += 6;
-
-  // GST - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.text('GST', 120, y);
-  doc.text(`Rs. ${gstAmount.toLocaleString('en-IN')}`, 175, y);
-
-  y += 6;
-
-  // GRAND TOTAL - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('GRAND TOTAL', 120, y);
-  doc.text(`Rs. ${grandTotal.toLocaleString('en-IN')}`, 175, y);
-
-  // AMOUNT WORDS
-  y = tableStartY + tableHeight + 5;
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-
-  doc.text('Amount Chargeable (in words):', 14, y);
-  y += 5;
-
-  // Amount in words - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.text(`INR ${this.numberToWords(grandTotal)} Only`, 14, y);
-
-  // PAN + DECLARATION
-  y += 15;
-
-  doc.setFont('helvetica', 'normal');
-  doc.text("Company's PAN :", 14, y);
-
-  // PAN number - normal font
-  doc.setFont('helvetica', 'normal');
-  doc.text("ABMCS9351E", 50, y);
-
-  y += 6;
-  doc.setFont('helvetica', 'bold');
-  doc.text("Terms and Conditions:", 14, y);
-
-  y += 4;
-  doc.text("1.Transport Extra as Availability", 14, y);
-
-  y += 4;
-  doc.text("2.Advance 50% to Confirm Order and 50% at Final Delivery", 14, y);
-
-  y += 4;
-  doc.text("3.This Quotation is valid for 30 days only.", 14, y);
-
-  doc.setFontSize(8);
-  doc.setTextColor(100,100,100);
-  doc.text("This is a Computer Generated Document", 105, 283, { align: 'center' });
-
-  doc.save(`SAIRAJ_FRP_Round_Planter_Quotation_${today}.pdf`);
-}
-
-
+  // ===============================
+  // SHARE ON WHATSAPP
+  // ===============================
 
   shareOnWhatsApp() {
     const number = this.phoneNumber.replace(/\D/g, '');
@@ -670,6 +708,7 @@ generatePDF() {
 Top Dia: ${this.dimensions.topDia} ${this.unit}
 Height: ${this.dimensions.height} ${this.unit}
 Qty: ${this.dimensions.quantity}
+Commission: ${this.commission}%
 
 *EXACT CALCULATIONS:*
 Top Circle: ${this.calculated.topCircle.toFixed(2)}
@@ -683,37 +722,44 @@ Die Cost/PCS: ₹ ${this.calculated.rawDieCostPerPcs.toFixed(6)}
 3.5mm: ₹ ${this.getRate35().toFixed(6)}
 5mm: ₹ ${this.getRate5().toFixed(6)}
 
-*RATES (Rounded):*
-Selected Thickness: ${this.selectedThickness} mm
+*MAIN PLANTER BREAKDOWN:*
 Per Piece Rate: ₹ ${this.getSelectedRate().toLocaleString('en-IN')}
-Subtotal: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}
+Subtotal: ₹ ${this.getMainPlanterSubtotal().toLocaleString('en-IN')}
+Commission: ₹ ${Math.round(this.getMainPlanterCommission()).toLocaleString('en-IN')}
+Total: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}
 `;
 
     if (this.extraCalculators.length > 0) {
       message += `\n*ADDITIONAL PLANTERS:*\n`;
       for (let i = 0; i < this.extraCalculators.length; i++) {
         const calc = this.extraCalculators[i];
-        message += `Planter ${i + 1}: Dia ${calc.topDia} ${calc.unit || 'inch'}, Ht ${calc.height} ${calc.unit || 'inch'}, Qty ${calc.qty}\n`;
+        message += `\nPlanter ${i + 1}:\n`;
+        message += `Dia ${calc.topDia} ${calc.unit || 'inch'}, Ht ${calc.height} ${calc.unit || 'inch'}, Qty ${calc.qty}\n`;
+        message += `Commission: ${calc.commission || 0}%\n`;
         message += `Total Sqft: ${calc.rawTotalSqft.toFixed(6)}\n`;
         message += `Die Cost: ₹ ${calc.rawDieCost.toFixed(2)}\n`;
         message += `Die Cost/PCS: ₹ ${calc.rawDieCostPerPcs.toFixed(6)}\n`;
         message += `FRP Rate: ₹ ${this.getExtraFrpRate(calc).toFixed(6)}\n`;
-        message += `Amount: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}\n\n`;
+        message += `Subtotal: ₹ ${this.getExtraSubtotal(calc).toLocaleString('en-IN')}\n`;
+        message += `Commission: ₹ ${Math.round(this.getExtraCommissionAmount(calc)).toLocaleString('en-IN')}\n`;
+        message += `Total: ₹ ${this.getExtraGrandTotal(calc).toLocaleString('en-IN')}\n`;
       }
     }
 
-    const mainTotal = this.getMainPlanterTotal();
-    const additionalTotal = this.getAllAdditionalTotal();
-    const subtotal = mainTotal + additionalTotal;
-    const gstAmount = (subtotal * this.gstPercent) / 100;
+    message += `\n*SUMMARY:*
+Main Planter Subtotal: ₹ ${this.getMainPlanterSubtotal().toLocaleString('en-IN')}
+Main Planter Commission: ₹ ${Math.round(this.getMainPlanterCommission()).toLocaleString('en-IN')}
+Main Planter Total: ₹ ${this.getMainPlanterTotal().toLocaleString('en-IN')}
 
-    message += `*SUMMARY:*
-Main Planter: ₹ ${mainTotal.toLocaleString('en-IN')}
-${additionalTotal > 0 ? `Additional: ₹ ${additionalTotal.toLocaleString('en-IN')}\n` : ''}
-Subtotal: ₹ ${Math.round(subtotal).toLocaleString('en-IN')}
-GST (${this.gstPercent}%): ₹ ${Math.round(gstAmount).toLocaleString('en-IN')}
+Additional Planters Subtotal: ₹ ${this.getAllAdditionalSubtotal().toLocaleString('en-IN')}
+Additional Planters Commission: ₹ ${Math.round(this.getAllAdditionalCommission()).toLocaleString('en-IN')}
+Additional Planters Total: ₹ ${this.getAllAdditionalTotal().toLocaleString('en-IN')}
 
-*GRAND TOTAL (Incl GST): ₹ ${this.getCombinedGrandTotal().toLocaleString('en-IN')}*
+Combined Subtotal: ₹ ${this.getCombinedSubtotal().toLocaleString('en-IN')}
+Total Commission: ₹ ${Math.round(this.getCombinedCommission()).toLocaleString('en-IN')}
+GST (${this.gstPercent}%): ₹ ${Math.round(this.getCombinedGST()).toLocaleString('en-IN')}
+
+*GRAND TOTAL (Incl GST & Commission): ₹ ${this.getCombinedGrandTotal().toLocaleString('en-IN')}*
 
 Thank you for your business!`;
 
